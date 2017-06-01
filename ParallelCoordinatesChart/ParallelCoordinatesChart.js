@@ -59,7 +59,7 @@ function ParallelCoordinatesChart(parent, pathToCSV, doneLoading, selectionChang
 
 		//Extract the list of dimensions and create a scale for each
 		self.x.domain(self.dimensions = d3.keys(results[0]).filter(function(d) {
-			return !self.filter.includes(d);
+			return filter ? !self.filter.includes(d) : true;
 		}));
 		for (i in self.dimensions) {
 			var d = self.dimensions[i];
