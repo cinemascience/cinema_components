@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!--A demonstration of some basic usage of the ParallelCoordinatesChart component-->
+<html lang='en'>
+<head>
+	<title>Parallel Coordinates Example (Cars)</title>
+	<meta charset="utf-8">
+	<meta name='author' content="Cameron Tauxe">
+	<link rel='stylesheet' href='example.css'>
+	<!--Don't forget to add the component's stylsheet!-->
+	<link rel="stylesheet" href="parallelCoordinates.css">
+	<script src="lib/d3.v3.min.js"></script>
+	<!--Import chart component (don't forget d3!)-->
+	<script src = 'ParallelCoordinatesChart.js'></script>
+</head>
+<body>
+	<div id="header">
+		<h1>Parallel Coordinates Example (Cars)</h1>
+	</div>
+	<!--The component will be placed into svgContainer.
+		It will try to match its container's size exactly
+		so if you want padding and margins and such,
+		it is advisable to wrap the container (inside svgArea in this case)-->
+	<div id="svgArea">
+		<div id="svgContainer"></div>
+	</div>
+	<div id="resultsArea">
+		<!--Show a sample of the currently selected cars-->
+		<div id="selection">
+			<div>Selected Cars:</div>
+			<div id="selectionReadout"></div>
+			<div id="selectionMore"></div>
+		</div>
+		<!--Show the car that's currently being moused over in the chart-->
+		<div id ="mousedOver">
+			<div>Moused Over Car:
+			<div id="mouseOverReadout"></div>
+		</div>
+	</div>
+
+	<script>
+		//Create chart
+		var loaded = false;
+		var chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),//container
+												'cars.csv',//path to csv
+												doneLoading,//loading callback function
+												onSelectionChange,//selection callback function
+												onMouseOverChange,//mouse-over callback function
+												["name"]);//dimension filter
+		/**
+		 * Loading callback function.
+		 * Called when the database is done loading.
+		 * (some functions may want to check that loading is done before
+		 * doing things to the chart)
+		 */
+		function doneLoading() {
+			loaded = true;
+		}
+
+		/**
+		 * It is important to call updateSize() whenever the size of the
+		 * chart's container may change. If you dont, the chart will still
+		 * fit the area, but it will become distorted
+		 */
+		window.onresize = function(){
+			if (loaded)
+				chart.updateSize();
+		};
+
+		/**
+		 * Selection callback function.
+		 * This is called whenever the selection in the chart changes
+		 * and sends an array of the indices of the selected results
+		 * as an argument.
+		 * 
+		 * This particular example takes a sample of the selected cars
+		 * and adds a viewport for each one to the selectionReadout area.
+		 */
+		function onSelectionChange(query) {
+			var sampleSize = 25;
+			var sample = (query.length > sampleSize ? getSample(query,sampleSize) : query);
+			d3.select('#selectionReadout').html('').selectAll('.resultView')
+				.data(sample)
+				.enter()
+					.append('div').attr('class','resultView')
+					.each(function(d){createResultViewContent(this, d);})
+			d3.select('#selectionMore')
+				.text(query.length > 25 ? ('...and '+(query.length-sampleSize)+' more.') : '');
+		}
+
+		/**
+		 * Mouse-over callback function.
+		 * This is called whenever a result in the chart is moused-over.
+		 * It passes the index of the result as the first argument
+		 * and the mouse event that triggered it as the second argument (if you need it).
+		 * when a result is moused-off, this is called again with the index being null
+		 * 
+		 * This particular example creates a viewport for the result and adds it
+		 * to the mouseOverReadout area.
+		 */
+		function onMouseOverChange(i) {
+			if (i != null) {
+				d3.select('#mouseOverReadout').html('')
+					.append('div').attr('class', 'resultView')
+					.each(function(){createResultViewContent(this, i);});
+			}
+			else {
+				d3.select('#mouseOverReadout').html('')
+					.append('div').attr('class','resultView')
+					.text('None');
+			}
+		}
+
+		/**
+		 * Creates a viewport inside the given parent for the result represented
+		 * by the given index (d).
+		 * This isn't a necessary function of the component, but it can be convenient
+		 * if you want to display a lot of results.
+		 * 
+		 * In this particular example, a viewport simply contains text stating the cars
+		 * name and year. Each viewport will also highlight its result in the chart when
+		 * moused-over.
+		 * 
+		 * Note that you can access data by access the chart's results and giving it the index.
+		 * And that, even though "name" was filtered out of the chart, it can still be accessed.
+		 */
+		function createResultViewContent(parent, d) {
+			d3.select(parent)
+				.text(function() {
+					return (chart.results[d].name +
+							' ('+chart.results[d].year+'\')');
+				})
+				.on('mouseenter', function() {
+					//set the highlight in the chart by giving it the index of the result
+					chart.setHighlight(d);
+				})
+				.on('mouseleave', function() {
+					//setting the highlight to null will remove the highlight in the chart
+					chart.setHighlight(null);
+				});
+		}
+
+		/*
+		* Get a random sample from an array
+		* https://stackoverflow.com/a/37771403
+		*/
+		function getSample(arr, count) {
+			// Make a copy of the array
+			var tmp = arr.slice(arr);
+			var result = [];
+			
+			for (var i = 0; i < count; i++) {
+				var index = Math.floor(Math.random() * tmp.length);
+				var removed = tmp.splice(index, 1);
+				// Since we are only removing one element
+				result.push(removed[0]);
+			}
+			return result;
+		}
+	</script>
+</body>
