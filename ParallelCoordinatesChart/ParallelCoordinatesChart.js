@@ -2,7 +2,12 @@
  * Based on Parallel Coordinates example by Mike Bostock and Jason Davies
  * 
  * Modified by Cameron Tauxe
- * Version: 1.0 (June 1, 2016)
+ * Version: 1.1 (June 2, 2016)
+ * 	- Can now display NaN dimensions
+ * 
+ * Previous versions:
+ * 1.0 (June 1, 2016)
+ * 	-Initial
  */
 
 /**
@@ -32,7 +37,6 @@ function ParallelCoordinatesChart(parent, pathToCSV, doneLoading, selectionChang
 	//keeps track of which dimension is being dragged
 	this.dragging = {};
 
-	this.line = d3.svg.line().interpolate('cardinal-open').tension(0.85);
 	this.axis = d3.svg.axis().orient("left");
 	this.paths;
 
@@ -63,9 +67,18 @@ function ParallelCoordinatesChart(parent, pathToCSV, doneLoading, selectionChang
 		}));
 		for (i in self.dimensions) {
 			var d = self.dimensions[i];
-			self.y[d] = d3.scale.linear()
-				.domain(d3.extent(results, function(p){return +p[d];}))
-				.range([self.internalHeight, 0]);
+			//Add an ordinal scale if values are NaN, otherwise, use a linear scale
+			if (isNaN(results[0][d])) {
+				var dif = self.internalHeight/results.length;
+				self.y[d] = d3.scale.ordinal()
+					.domain(results.map(function(p){return p[d];}))
+					.rangePoints([self.internalHeight,0]);
+			}
+			else {
+				self.y[d] = d3.scale.linear()
+					.domain(d3.extent(results, function(p){return +p[d];}))
+					.range([self.internalHeight, 0]);
+			}
 		}
 
 		//Create result Paths
@@ -193,7 +206,10 @@ ParallelCoordinatesChart.prototype.brush = function() {
 	var newQuery = [];
 	this.paths.each(function(d,i) {
 		var sel = actives.every(function(p,i) {
-			return extents[i][0] <= d[p] && d[p] <= extents[i][1];
+			if (self.y[p].rangePoints)//determine if scale is ordinal by whether rangePoints is exposed
+				return extents[i][0] <= self.y[p](d[p]) && self.y[p](d[p]) <= extents[i][1];
+			else
+				return extents[i][0] <= d[p] && d[p] <= extents[i][1];
 		})
 		d3.select(this).attr('mode', sel ? 'active' : 'inactive');
 		if (sel)
@@ -231,7 +247,10 @@ ParallelCoordinatesChart.prototype.updateSize = function() {
 	var oldExtents = this.dimensions.map(function(p){return self.y[p].brush.extent().slice();});
 
 	this.dimensions.forEach(function(d) {
-		self.y[d].range([self.internalHeight,0]);
+		if (self.y[d].rangePoints)//determine if scale is ordinal by whether rangePoints is exposed
+			self.y[d].rangePoints([self.internalHeight,0])
+		else
+			self.y[d].range([self.internalHeight,0]);
 	});
 	this.paths.attr("d", function(d){return self.getPath(d)});
 	this.axes.attr("transform", function(d) {

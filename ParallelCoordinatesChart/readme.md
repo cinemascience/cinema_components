@@ -1,5 +1,5 @@
 #Parallel Coordinates Chart
-##Version 1.0
+##Version 1.1
 
 ###Usage
 
@@ -16,7 +16,7 @@ To create a new chart, simply call the constructor like so:
 * **doneLoading (optional)**: Done Loading callback function. See **callbacks** for more info.
 * **selectionChanged (optional)**: Selection Changed callback function. See **callbacks** for more info.
 * **mouseOverChanged (optional)**: Mouse-over Changed callback function. See **callbacks** for more info.
-* **filter (optional)**: An array of dimensions to ignore when building the chart. **IMPORTANT: List any NaN dimensions (such as names) here.** Dimensions that are filtered out will still be accessible from results, but will not appear on the chart.
+* **filter (optional)**: An array of dimensions to ignore when building the chart. Dimensions that are filtered out will still be accessible from results, but will not appear on the chart.
 
 ####Commonly-accessed fields
 * **ParallelCoordinatesChart.results**: An array of all the results in the chart (as objects). Since most callbacks only provide an index, you will want to make use of this array to access the fields of a result.
