@@ -1,5 +1,5 @@
 #Parallel Coordinates Chart
-##Version 1.1
+##Version 1.11
 
 ###Usage
 
@@ -57,5 +57,13 @@ function load(pathToCSV) {
 										filter);
 }
 ```
+
+#Changelog
+###v1.11 (June 5, 2016)
+- Fixed Brushes on NaN dimensions not resizing vertically
+###v1.1 (June 2, 2016)
+- Added support for NaN dimensions
+###v1.0 (June 1, 2016)
+- Initial
 
 

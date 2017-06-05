@@ -2,12 +2,7 @@
  * Based on Parallel Coordinates example by Mike Bostock and Jason Davies
  * 
  * Modified by Cameron Tauxe
- * Version: 1.1 (June 2, 2016)
- * 	- Can now display NaN dimensions
- * 
- * Previous versions:
- * 1.0 (June 1, 2016)
- * 	-Initial
+ * Version: 1.11 (June 5, 2016)
  */
 
 /**
@@ -244,7 +239,18 @@ ParallelCoordinatesChart.prototype.updateSize = function() {
 
 	//save the old extents of the brushes before recreating scales.
 	//(these are applied to the new brushes when they are recreated)
-	var oldExtents = this.dimensions.map(function(p){return self.y[p].brush.extent().slice();});
+	//save the old extents of the brushes before recreating scales.
+	//(these are applied to the new brushes when they are recreated)
+	var oldExtents = this.dimensions.map(function(p){
+		if (self.y[p].rangePoints) {
+			//extents for ordinal scales must be rescaled to the new size
+			return self.y[p].brush.extent().map(function(i) {
+				return (i/self.y[p].range()[0]) * self.internalHeight;
+			});
+		}
+		else
+			return self.y[p].brush.extent().slice();
+	});
 
 	this.dimensions.forEach(function(d) {
 		if (self.y[d].rangePoints)//determine if scale is ordinal by whether rangePoints is exposed
