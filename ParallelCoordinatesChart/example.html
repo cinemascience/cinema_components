@@ -8,7 +8,7 @@
 	<link rel='stylesheet' href='example.css'>
 	<!--Don't forget to add the component's stylsheet!-->
 	<link rel="stylesheet" href="parallelCoordinates.css">
-	<script src="lib/d3.v3.min.js"></script>
+	<script src="lib/d3.min.js"></script>
 	<!--Import chart component (don't forget d3!)-->
 	<script src = 'ParallelCoordinatesChart.js'></script>
 </head>
@@ -23,6 +23,7 @@
 	<div id="svgArea">
 		<div id="svgContainer"></div>
 	</div>
+	<div id="resizeBar"></div>
 	<div id="resultsArea">
 		<!--Show a sample of the currently selected cars-->
 		<div id="selection">
@@ -42,10 +43,8 @@
 		var loaded = false;
 		var chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),//container
 												'cars.csv',//path to csv
-												doneLoading,//loading callback function
-												onSelectionChange,//selection callback function
-												onMouseOverChange,//mouse-over callback function
-												["name"]);//dimension filter
+												["name"],//dimension filter
+												doneLoading);
 		/**
 		 * Loading callback function.
 		 * Called when the database is done loading.
@@ -66,8 +65,23 @@
 				chart.updateSize();
 		};
 
+		//Set up dragging on the resize bar
+		var resizeDrag = d3.drag()
+			.on('start', function() {
+				d3.select(this).attr('mode', 'dragging');
+			})
+			.on('drag', function() {
+				var headerRect = d3.select('#header').node().getBoundingClientRect();
+				d3.select('#svgArea').style('height',(d3.event.y - headerRect.height)+'px');
+				chart.updateSize();
+			})
+			.on('end', function() {
+				d3.select(this).attr('mode', 'default');
+			});
+		d3.select('#resizeBar').call(resizeDrag);
+
 		/**
-		 * Selection callback function.
+		 * Respond to selection change event
 		 * This is called whenever the selection in the chart changes
 		 * and sends an array of the indices of the selected results
 		 * as an argument.
@@ -75,7 +89,7 @@
 		 * This particular example takes a sample of the selected cars
 		 * and adds a viewport for each one to the selectionReadout area.
 		 */
-		function onSelectionChange(query) {
+		chart.dispatch.on("selectionchange", function(query) {
 			var sampleSize = 25;
 			var sample = (query.length > sampleSize ? getSample(query,sampleSize) : query);
 			d3.select('#selectionReadout').html('').selectAll('.resultView')
@@ -85,10 +99,10 @@
 					.each(function(d){createResultViewContent(this, d);})
 			d3.select('#selectionMore')
 				.text(query.length > 25 ? ('...and '+(query.length-sampleSize)+' more.') : '');
-		}
+		});
 
 		/**
-		 * Mouse-over callback function.
+		 * Respond to mouseover event
 		 * This is called whenever a result in the chart is moused-over.
 		 * It passes the index of the result as the first argument
 		 * and the mouse event that triggered it as the second argument (if you need it).
@@ -97,7 +111,7 @@
 		 * This particular example creates a viewport for the result and adds it
 		 * to the mouseOverReadout area.
 		 */
-		function onMouseOverChange(i) {
+		chart.dispatch.on("mouseover", function(i) {
 			if (i != null) {
 				d3.select('#mouseOverReadout').html('')
 					.append('div').attr('class', 'resultView')
@@ -108,7 +122,7 @@
 					.append('div').attr('class','resultView')
 					.text('None');
 			}
-		}
+		});
 
 		/**
 		 * Creates a viewport inside the given parent for the result represented

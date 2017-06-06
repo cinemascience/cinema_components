@@ -17,6 +17,7 @@ body {
 }
 
 #svgArea {
+	box-sizing: border-box;
 	margin: 10px 30px;
 	height: 300px;
 	padding: 10px;
@@ -28,6 +29,19 @@ body {
 #svgContainer {
 	width: 100%;
 	height: 100%;
+}
+
+#resizeBar {
+	cursor: ns-resize;
+	height: 3px;
+	background-color: rgb(150,150,150);
+}
+#resizeBar:hover {
+	background-color: rgb(124, 196, 233);
+}
+#resizeBar[mode="dragging"],
+#resizeBar[mode="dragging"]:hover {
+	background-color: rgb(255, 153, 153);
 }
 
 #resultsArea {
