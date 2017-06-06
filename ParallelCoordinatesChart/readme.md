@@ -4,8 +4,8 @@
 ##Usage
 
 Please see **example.html** to see this in action.
-**NOTE: Version 1.2 now requries d3 v4.**
-**Version 1.2 also changed now callbacks work and requires changes be made to any client programs**
+####NOTE: Version 1.2 now requries d3 v4.
+####Version 1.2 also changed how callbacks work and requires changes be made to any client programs
 
 ##Creating a new chart
 To create a new chart, simply call the constructor like so:
@@ -63,10 +63,8 @@ function load(pathToCSV) {
 	d3.select('#svgContainer').html('');
 	chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),
 										pathToCSV,
-										doneLoading,
-										onSelectionChange,
-										updateInfoPane,
-										filter);
+										filter,
+										callback);
 }
 ```
 
