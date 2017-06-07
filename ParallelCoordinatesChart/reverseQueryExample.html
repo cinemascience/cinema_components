@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<!--A demonstration of the reverse query functionality of the parallel coordinates component
+	The user picks a selection of cars from the chart, and can query the chart to select
+	cars similiar to the average of all the cars they picked-->
+<html lang='en'>
+<head>
+	<title>Parallel Coordinates Reverse Query Example (Cars)</title>
+	<meta charset="utf-8">
+	<meta name='author' content="Cameron Tauxe">
+	<link rel='stylesheet' href='example.css'>
+	<link rel='stylesheet' href='reverseQueryExample.css'>
+	<!--Don't forget to add the component's stylsheet!-->
+	<link rel="stylesheet" href="parallelCoordinates.css">
+	<script src="lib/d3.min.js"></script>
+	<!--Import chart component (don't forget d3!)-->
+	<script src = 'ParallelCoordinatesChart.js'></script>
+</head>
+<body>
+	<div id="header">
+		<h1>Parallel Coordinates Reverse Query Example (Cars)</h1>
+	</div>
+	<!--The component will be placed into svgContainer.
+		It will try to match its container's size exactly
+		so if you want padding and margins and such,
+		it is advisable to wrap the container (inside svgArea in this case)-->
+	<div id="svgArea">
+		<div id="svgContainer"></div>
+	</div>
+	<div id="resizeBar"></div>
+	<div id="resultsArea">
+		<!--Results picked by the user are shown here-->
+		<div id="picked">
+			<div>Pick some cars you like:</div>
+			<div style="font-size: 12px;">Click in the chart to add. Click a picked car to remove.</div>
+			<div id="pickedReadout"></div>
+			<button id="reverseQuery" onclick="reverseQuery()">Find Similiar</button>
+			<span style="font-size: 12px">
+				Click 'Find Similiar' to find cars similiar to the average of your picks.
+				(Represented by the red, dotted line)
+			</span>
+		</div>
+		<!--Show a sample of the currently selected cars-->
+		<div id="selection">
+			<div>Selected Cars:</div>
+			<div id="selectionReadout"></div>
+			<div id="selectionMore"></div>
+		</div>
+	</div>
+
+	<script>
+		//Indices of picked results
+		var pickedResults = [];
+		//The average data of all picked results
+		var pickedAverage = {};
+
+		//Create chart
+		var loaded = false;
+		var chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),//container
+												'cars.csv',//path to csv
+												["name"],//dimension filter
+												doneLoading);
+		/**
+		 * Loading callback function.
+		 * Called when the database is done loading.
+		 * (some functions may want to check that loading is done before
+		 * doing things to the chart)
+		 */
+		function doneLoading() {
+			loaded = true;
+			updatePickedResults();
+		}
+
+		/**
+		 * It is important to call updateSize() whenever the size of the
+		 * chart's container may change. If you dont, the chart will still
+		 * fit the area, but it will become distorted
+		 */
+		window.onresize = function(){
+			if (loaded)
+				chart.updateSize();
+		};
+
+		//Set up dragging on the resize bar
+		var resizeDrag = d3.drag()
+			.on('start', function() {
+				d3.select(this).attr('mode', 'dragging');
+			})
+			.on('drag', function() {
+				var headerRect = d3.select('#header').node().getBoundingClientRect();
+				d3.select('#svgArea').style('height',(d3.event.y - headerRect.height)+'px');
+				chart.updateSize();
+			})
+			.on('end', function() {
+				d3.select(this).attr('mode', 'default');
+			});
+		d3.select('#resizeBar').call(resizeDrag);
+
+		/**
+		 * Respond to selection change event
+		 * This is called whenever the selection in the chart changes
+		 * and sends an array of the indices of the selected results
+		 * as an argument.
+		 * 
+		 * This particular example takes a sample of the selected cars
+		 * and adds a viewport for each one to the selectionReadout area.
+		 */
+		chart.dispatch.on("selectionchange", function(query) {
+			var sampleSize = 25;
+			var sample = (query.length > sampleSize ? getSample(query,sampleSize) : query);
+			d3.select('#selectionReadout').html('').selectAll('.resultView')
+				.data(sample)
+				.enter()
+					.append('div').attr('class','resultView')
+					.each(function(d){createResultViewContent(this, d);})
+			d3.select('#selectionMore')
+				.text(query.length > 25 ? ('...and '+(query.length-sampleSize)+' more.') : '');
+		});
+
+		/**
+		 * Respond to mouseover event
+		 * This is called whenever a result in the chart is moused-over.
+		 * It passes the index of the result as the first argument
+		 * and the mouse event that triggered it as the second argument (if you need it).
+		 * when a result is moused-off, this is called again with the index being null
+		 * 
+		 * This particular example creates a preview viewport in the pickedReadout
+		 * to show which car will be added if the user clicks
+		 */
+		chart.dispatch.on("mouseover", function(i) {
+			if (i != null && !pickedResults.includes(i)) {
+				d3.select('#pickedReadout .pickedView[mode="preview"]').remove();
+				d3.select('#pickedReadout')
+					.append('div').attr('class', 'pickedView')
+					.attr('mode','preview')
+					.each(function(){createPickedViewContent(this, i);});
+			}
+			else {
+				d3.select('#pickedReadout .pickedView[mode="preview"]').remove();
+			}
+		});
+
+		/**
+		 * Respond to click event.
+		 * This is called whenever a result in the chart is clicked on.
+		 * It passes the index of the result as the first argument
+		 * and the mouse event that triggered it as the second argument (if you need it).
+		 * 
+		 * This particular example creates a viewport in the pickedReadout and updates
+		 * the list of picked results
+		 */
+		chart.dispatch.on("click", function(i) {
+			d3.select('#pickedReadout .pickedView[mode="preview"]')
+				.attr('mode','picked');
+			if (!pickedResults.includes(i)) {
+				pickedResults.push(i);
+				updatePickedResults();
+			}
+		})
+
+		/**
+		 * Performs a "reverse query" on the chart to select all results similiar
+		 * to the picked average. Called whenever the "Find Similiar" button is pressed.
+		 * 
+		 * Note the usage of chart.getSimiliar() and chart.setSelection()
+		 */
+		function reverseQuery() {
+			var similiar = chart.getSimiliar(pickedAverage, d3.keys(pickedAverage).length*0.05)
+			if (similiar.length > 0)
+				chart.setSelection(similiar);
+		}
+
+		/**
+		 * Creates a viewport inside the given parent for the result represented
+		 * by the given index (d).
+		 * This isn't a necessary function of the component, but it can be convenient
+		 * if you want to display a lot of results.
+		 * 
+		 * In this particular example, a viewport simply contains text stating the cars
+		 * name and year. Each viewport will also highlight its result in the chart when
+		 * moused-over.
+		 * 
+		 * Note that you can access data by access the chart's results and giving it the index.
+		 * And that, even though "name" was filtered out of the chart, it can still be accessed.
+		 */
+		function createResultViewContent(parent, d) {
+			d3.select(parent)
+				.text(function() {
+					return (chart.results[d].name +
+							' (\''+chart.results[d].year+')');
+				})
+				.on('mouseenter', function() {
+					//set the highlight in the chart by giving it the index of the result
+					chart.setHighlight(d);
+				})
+				.on('mouseleave', function() {
+					//setting the highlight to null will remove the highlight in the chart
+					chart.setHighlight(null);
+				});
+		}
+
+		/**
+		 * Similiar to createResultViewContent but for results in the picked area.
+		 * Has the additional feature of removing itself from the readout when clicked.
+		 * (updates the picked results when removed)
+		 */
+		function createPickedViewContent(parent, d) {
+			createResultViewContent(parent, d);
+			d3.select(parent)
+				.on('click', function() {
+					chart.setHighlight(null);
+					d3.select(parent).remove();
+					pickedResults.splice(pickedResults.indexOf(d),1);
+					updatePickedResults();
+				});
+		}
+
+		/**
+		 * Called whenever the list of picked results changes.
+		 * Calculates the average of all picked results and draws
+		 * an overlay path on the chart to represent said average.
+		 * 
+		 * Note the usage of chart.overlayPathData and chart.updateOverlayPaths()
+		 */
+		function updatePickedResults() {
+			if (pickedResults.length == 0) {
+				d3.select('#reverseQuery').node().disabled = true;
+				pickedAverage = {};
+			}
+			else {
+				d3.select('#reverseQuery').node().disabled = false;
+				chart.dimensions.filter(function(d) {
+						return !isNaN(chart.results[0][d]);
+					})
+					.forEach(function(d) {
+						var sum = 0;
+						pickedResults.forEach(function(i) {
+							sum += Number(chart.results[i][d]);
+						});
+						pickedAverage[d] = (sum/pickedResults.length);
+					});;
+			}
+			chart.overlayPathData = [];
+			//chart.removeOverlayPath(0);
+			if (pickedAverage != {}) {
+				//chart.addOverlayPath(pickedAverage);
+				chart.overlayPathData[0] = {data: pickedAverage}
+			}
+			chart.updateOverlayPaths();
+		}
+
+		/*
+		* Get a random sample from an array
+		* https://stackoverflow.com/a/37771403
+		*/
+		function getSample(arr, count) {
+			// Make a copy of the array
+			var tmp = arr.slice(arr);
+			var result = [];
+			
+			for (var i = 0; i < count; i++) {
+				var index = Math.floor(Math.random() * tmp.length);
+				var removed = tmp.splice(index, 1);
+				// Since we are only removing one element
+				result.push(removed[0]);
+			}
+			return result;
+		}
+	</script>
+</body>

@@ -64,9 +64,13 @@ body {
 }
 
 .resultView {
+	cursor: pointer;
 	display: inline-block;
 	background-color: rgb(255, 153, 153);
 	box-shadow: 2px 2px 3px dimgray;
 	padding: 5px;
 	margin: 5px;
+}
+.resultView:hover {
+	background-color: rgb(206, 111, 111)
 }
