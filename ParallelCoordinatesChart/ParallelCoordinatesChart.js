@@ -2,7 +2,7 @@
  * Based on Parallel Coordinates example by Mike Bostock and Jason Davies
  * 
  * Modified by Cameron Tauxe
- * Version: 1.3 (June 7, 2016)
+ * Version: 1.3.1 (June 9, 2016)
  */
 
 /**
@@ -149,7 +149,7 @@ function ParallelCoordinatesChart(parent, pathToCSV, filter, callback) {
 						return self.getPath(results[d3.select(this).attr('index')]);
 					});
 					transition(self.overlayPaths.selectAll('path')).attr('d', function(d) {
-						return self.getPath(d.data)
+						return self.getIncompletePath(d.data)
 					});
 				}));
 		
@@ -213,6 +213,63 @@ ParallelCoordinatesChart.prototype.getPath = function(d) {
 	});
 	return path;
 };
+
+/**
+ * Get the path (the contents of the 'd' attribute) for the path
+ * represented by the given data point.
+ * Includes additonal logic to draw a physical break in the path
+ * where dimensions are missing.
+ */
+ParallelCoordinatesChart.prototype.getIncompletePath = function(d) {
+	var self = this;
+	var curveLength = this.internalWidth/this.dimensions.length/3;
+	var path = '';
+
+	//Split dimensions into sections deliminated by missing dimensions
+	var sections = [];
+	var currentSection = [];
+	this.dimensions.forEach(function(p) {
+		if (d[p] != undefined) {
+			currentSection.push(p);
+		}
+		else if (currentSection.length != 0) {
+			sections.push(currentSection.slice());
+			currentSection = [];
+		}
+	});
+	if (currentSection.length > 0)
+		sections.push(currentSection.slice());
+
+	sections.forEach(function(section) {
+		if (section.length == 1) {
+			var p = section[0];
+			var x = self.getPosition(p);
+			var y = self.y[p](d[p]);
+			path += ('M '+(x-curveLength/2)+' '+y+' L ')+
+					((x+curveLength/2)+' '+y);
+		}
+		else {
+			section.forEach(function (p, i) {
+				var x = self.getPosition(p);
+				var y = self.y[p](d[p]);
+				if (i == 0) {//beginning of path
+					path += ('M '+x+' '+y+' C ')+
+							((x+curveLength)+' '+y+' ');
+				}
+				else if (i == section.length-1) {//end of path
+					path += ((x-curveLength)+' '+y+' ')+
+							(x+' '+y+' ');
+				}
+				else {//midpoints
+					path += ((x-curveLength)+' '+y+' ')+
+							(x+' '+y+' ')+
+							((x+curveLength)+' '+y+' ');
+				}
+			});
+		}
+	});
+	return path;
+}
 
 /**
  * Get the x-coordinate of the axis representing the given dimension
@@ -361,7 +418,7 @@ ParallelCoordinatesChart.prototype.setHighlight = function(index) {
  * The path data does not need to include every dimension. Missing dimensions will
  * be skipped over.
  */
-ParallelCoordinatesChart.prototype.updateOverlayPaths =function() {
+ParallelCoordinatesChart.prototype.updateOverlayPaths =function(repressTransition) {
 	var self = this;
 	var paths = this.overlayPaths.selectAll('path').data(this.overlayPathData);
 	paths.exit().remove()
@@ -369,10 +426,15 @@ ParallelCoordinatesChart.prototype.updateOverlayPaths =function() {
 		.append('path')
 		.attr('class','overlayPath')
 		.attr('style', function(d) {return d.style})
-		.attr('d', function(d) {return self.getPath(d.data)});
-	transition(paths)
-		.attr('style', function(d) {return d.style})
-		.attr('d', function(d) {return self.getPath(d.data)});
+		.attr('d', function(d) {return self.getIncompletePath(d.data)});
+	if (!repressTransition)
+		transition(paths)
+			.attr('style', function(d) {return d.style})
+			.attr('d', function(d) {return self.getIncompletePath(d.data)});
+	else
+		paths
+			.attr('style', function(d) {return d.style})
+			.attr('d', function(d) {return self.getIncompletePath(d.data)});
 }
 
 /**
@@ -422,11 +484,12 @@ ParallelCoordinatesChart.prototype.getSimiliar = function(data, threshold) {
 	this.paths.each(function(p,i) {
 		var dist = 0;//manhattan distance (each dimension is normalized)
 		for (d in data) {
-			var max = Number(self.y[d].range()[0]);
+			var max = Number(self.y[d].domain()[self.y[d].domain().length-1]);
 			dist += Math.abs(Number(data[d])/max-Number(p[d])/max);
 		}
-		if (dist <= threshold)
+		if (dist <= threshold) {
 			similiar.push(i);
+		}
 	})
 	return similiar;
 }
@@ -447,7 +510,7 @@ ParallelCoordinatesChart.prototype.redrawPaths = function() {
 
 	this.overlayPaths.selectAll('path')
 		.attr('style', function(d) {return d.style})
-		.attr('d', function(d) {return self.getPath(d.data)});
+		.attr('d', function(d) {return self.getIncompletePath(d.data)});
 }
 
 //Convenience functions

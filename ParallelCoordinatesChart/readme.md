@@ -1,5 +1,5 @@
 #Parallel Coordinates Chart
-##Version 1.3
+##Version 1.3.1
 
 ##Usage
 
@@ -67,7 +67,7 @@ is the mouse event that triggered it.
 * **ParallelCoordinatesChart.setSelection(indices)**: Sets the selection in the chart to encapsulate all of the given results.
 **indices** is an array of the indices of all the results to select.
 * **ParallelCoordinatesChart.getSimiliar(data, threshold)**: Get all the results (as an array of indices) the are similiar to the given data. **data** does not need to include a value for every dimension. However every dimension that is included must be numeric. **threshold** is the maximum difference for results to be included. Difference is measured as the Manhattan distance where each dimension is normalized. i.e: The sum of the differences on each dimensions (scaled from 0 to 1.0).
-* **ParallelCoordinatesChart.updateOverlayPaths()**: Update the overlay paths according to **overlayPathData**. Call this whenever overlayPathData is changed.
+* **ParallelCoordinatesChart.updateOverlayPaths(repressTransition)**: Update the overlay paths according to **overlayPathData**. Call this whenever overlayPathData is changed. If **repressTransition** is true, then the paths will snap instantly to their new location, otherwise, they will smoothly transition.
 
 ####Again, look at the examples. It will all make more sense then.
 
@@ -87,6 +87,10 @@ function load(pathToCSV) {
 ```
 
 #Changelog
+##v1.3.1 (June 9, 2016)
+- Fixed getSimiliar algorithm returning incorrect results
+- Added repressTransition option to updateOverlayPaths()
+- Added getIncompletePath()
 ##v1.3 (June 7, 2016)
 - Added setSelection function
 - Added getSimiliar function
