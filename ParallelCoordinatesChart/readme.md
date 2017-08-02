@@ -1,5 +1,5 @@
 #Parallel Coordinates Chart
-##Version 1.3.1
+##Version 1.3.2
 
 ##Usage
 
@@ -35,6 +35,7 @@ Example:
 overlayPathData = [{data: dataToDrawPathFrom, style: styleAttributeForPath}]
 ```
 The data does not need to include values for every dimension. Missing dimensions are simply skipped over when drawing the path.
+* **ParallelCoordinatesChart.smoothPaths**: A boolean value indicating whether or not to smooth the paths drawn on the chart. If changing this live, the **redrawPaths** function should be called after changing it to update the chart.
 
 ##Events
 Creating and interacting with the chart will often trigger events through the **dispatch**. The functions for these events can be set using the **on** function.
@@ -71,6 +72,27 @@ is the mouse event that triggered it.
 
 ####Again, look at the examples. It will all make more sense then.
 
+##CSS
+Use the following selectors to select various parts of the chart
+```css
+/*The entire chart (svg)*/
+.pCoordChart {}
+/*All result paths (path)*/
+.pCoordChart .resultPath {}
+/*Result path with index X (path)*/
+.pCoordChart .resultPath[index="X"] {}
+/*Highlight path (path)*/
+.pCoordChart .highlightPath {}
+/*Default overlay path (path) (may be overriden in code)*/
+.pCoordChart .overlayPath {}
+/*Axis lines*/
+.pCoordChart .axis line, .pCoordChart .axis path {}
+/*Axis text*/
+.pCoordChart .axis text {}
+/*Brush*/
+.pCoordChart .brush .extent {}
+```
+
 ##Other things
 ###To change the dataset used by the chart:
 Simply create another chart by calling the constructor again, set to look at the new csv file. (Don't forget to remove the old chart from its parent, first)
@@ -87,23 +109,25 @@ function load(pathToCSV) {
 ```
 
 #Changelog
-##v1.3.1 (June 9, 2016)
+##v1.3.2 (August 2, 2017)
+- Added smoothPaths option
+##v1.3.1 (June 9, 2017)
 - Fixed getSimiliar algorithm returning incorrect results
 - Added repressTransition option to updateOverlayPaths()
 - Added getIncompletePath()
-##v1.3 (June 7, 2016)
+##v1.3 (June 7, 2017)
 - Added setSelection function
 - Added getSimiliar function
 - Added overlay paths
 - Added new example to demonstrate new features
-##v1.2 (June 6, 2016)
+##v1.2 (June 6, 2017)
 - Updated to d3 v4
 - selectionChanged and mouseOverChanged have been renamed to selectionchange and mouseover, and now work as events through **chart.dispatch**
-##v1.11 (June 5, 2016)
+##v1.11 (June 5, 2017)
 - Fixed Brushes on NaN dimensions not resizing vertically
-##v1.1 (June 2, 2016)
+##v1.1 (June 2, 2017)
 - Added support for NaN dimensions
-##v1.0 (June 1, 2016)
+##v1.0 (June 1, 2017)
 - Initial
 
 
