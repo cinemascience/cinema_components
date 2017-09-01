@@ -6,7 +6,6 @@ body {
 
 #header {
 	background: rgb(59, 167, 222);
-	box-shadow: 0px 5px 5px dimgray;
 	padding: 10px 0px 20px;
 	color: white;
 }
@@ -21,7 +20,7 @@ body {
 	margin: 10px 30px;
 	height: 300px;
 	padding: 10px;
-	background-color: white;
+	background-color: whitesmoke;
 	border: 2px solid dimgray;
 	box-shadow: inset 0px 0px 3px dimgray;
 }

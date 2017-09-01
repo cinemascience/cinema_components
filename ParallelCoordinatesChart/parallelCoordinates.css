@@ -1,5 +1,6 @@
 .pCoordChart {
 	font: 10px sans-serif;
+    background-color: whitesmoke;
 }
 
 .pCoordChart path{
@@ -43,6 +44,5 @@
 
 .pCoordChart .axis text {
 	fill: black;
-	text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
 	cursor: move;
 }
