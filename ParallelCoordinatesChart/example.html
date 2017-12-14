@@ -76,7 +76,7 @@ Chang, and is licensed appropriately.
 		var loaded = false;
 		var chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),//container
 												'cars.csv',//path to csv
-												["name"],//dimension filter
+												/^name$/,//dimension filter
 												doneLoading);
 		//chart.smoothPaths = false; //uncomment this to make the paths straight
 		/**

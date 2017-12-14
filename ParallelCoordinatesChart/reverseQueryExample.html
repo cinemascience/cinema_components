@@ -91,7 +91,7 @@ component. The user picks a selection of cars from the chart, and can query the 
 		var loaded = false;
 		var chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),//container
 												'cars.csv',//path to csv
-												["name"],//dimension filter
+												/^name$/,//dimension filter
 												doneLoading);
 		/**
 		 * Loading callback function.
@@ -198,7 +198,8 @@ component. The user picks a selection of cars from the chart, and can query the 
 		 * Note the usage of chart.getSimiliar() and chart.setSelection()
 		 */
 		function reverseQuery() {
-			var similiar = chart.getSimiliar(pickedAverage, d3.keys(pickedAverage).length*0.05)
+			var similiar = chart.getSimiliar(pickedAverage, d3.keys(pickedAverage).length*0.05);
+			console.log(similiar);
 			if (similiar.length > 0)
 				chart.setSelection(similiar);
 		}
@@ -263,7 +264,7 @@ component. The user picks a selection of cars from the chart, and can query the 
 			else {
 				d3.select('#reverseQuery').node().disabled = false;
 				chart.dimensions.filter(function(d) {
-						return !isNaN(chart.results[0][d]);
+						return !chart.isStringDimension(d); //filter out dimensions of string type
 					})
 					.forEach(function(d) {
 						var sum = 0;
