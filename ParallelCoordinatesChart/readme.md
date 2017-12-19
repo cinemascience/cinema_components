@@ -1,5 +1,5 @@
 # Parallel Coordinates Chart
-## Version 1.4
+## Version 1.4.01
 
 ## Usage
 
