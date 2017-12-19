@@ -3,7 +3,7 @@
  * @param {d3.Selection} parent A selection of the parent element to add the chart to
  * @param {String} pathToCsv Path to the CSV file to load data from
  * @param {RegExp} filterRegex Any dimensions whose names match this regex will be excluded from the chart
- * @param {*} callback 
+ * @param {function} callback Called when done loading (not called if there are errors in the data)
  */
 function GlyphChart(parent, pathToCsv, filterRegex, callback) {
 	//init instance variables
@@ -18,7 +18,7 @@ function GlyphChart(parent, pathToCsv, filterRegex, callback) {
 	var internalHeight = this.parentRect.height - this.margin.top - this.margin.bottom;
 	var squareSize = Math.min(internalHeight,internalWidth);
 	this.radius = squareSize/2;
-	this.InnerMargin = this.radius/11;
+	this.innerMargin = this.radius/11;
 
 	//Scales
 	this.scales = {};
@@ -79,7 +79,7 @@ function GlyphChart(parent, pathToCsv, filterRegex, callback) {
 			if (!isNaN(self.results[0][d]) || self.results[0][d].toUpperCase() === "NAN") {
 				self.scales[d] = d3.scaleLinear()
 					.domain(d3.extent(self.results, function(p){return +p[d];}))
-					.range([self.radius-self.InnerMargin,0]);
+					.range([self.radius-self.innerMargin,0]);
 			}
 			//otherwise, the dimension is a string type so create a point scale
 			else {
@@ -199,12 +199,12 @@ GlyphChart.prototype.updateSize = function() {
 						(this.parentRect.height));
 	var squareSize = Math.min(internalHeight,internalWidth);
 	this.radius = squareSize/2;
-	this.InnerMargin = this.radius/11;
+	this.innerMargin = this.radius/11;
 
 	var self = this;
 
 	this.dimensions.forEach(function (d) {
-		self.scales[d].range([self.isStringDimension(d) ? self.radius : self.radius-self.InnerMargin, 0]);
+		self.scales[d].range([self.isStringDimension(d) ? self.radius : self.radius-self.innerMargin, 0]);
 	});
 
 	//Re-transform axes

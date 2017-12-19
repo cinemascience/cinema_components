@@ -115,6 +115,8 @@ function load(pathToCSV) {
 ```
 
 # Changelog
+## v1.4.01 (December 19, 2017)
+- Fixed error message not showing if there were undefined values in first two rows of data
 ## v1.4 (December 14, 2017)
 - Numeric dimensions now include NaN values (strings "NaN" (not case-senstive)).
 - Now supports data with undefined values
