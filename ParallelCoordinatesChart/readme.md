@@ -1,5 +1,5 @@
 # Parallel Coordinates Chart
-## Version 1.4.01
+## Version 1.4.02
 
 ## Usage
 
@@ -115,6 +115,8 @@ function load(pathToCSV) {
 ```
 
 # Changelog
+## v1.4.02 (January 2, 2018)
+- Error checking now allows for there to be a stray newline at the end of the file
 ## v1.4.01 (December 19, 2017)
 - Fixed error message not showing if there were undefined values in first two rows of data
 ## v1.4 (December 14, 2017)
