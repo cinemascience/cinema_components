@@ -4,7 +4,7 @@ Repository containing javascript components for viewing Cinema SpecD databases
 
 ## ParallelCoordinatesChart
 
-**Current version 1.4.01**
+**Current version 1.4.02**
 
 A chart for displaying, selecting and querying data on a Parallel Coordinates chart
 
