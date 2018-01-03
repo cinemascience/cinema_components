@@ -533,7 +533,7 @@ ParallelCoordinatesChart.prototype.getSimiliar = function(data, threshold) {
 			}
 			//two undefined values have a distance of 0 from each other
 			else if (p[d] === undefined)
-				dist += 0;
+				dist += 0; //wait why did I write this?
 		});
 		if (dist <= threshold) {
 			similiar.push(i);
