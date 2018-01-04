@@ -11,7 +11,6 @@
 	 * @exports CINEMA_COMPONENTS
 	 * 
 	 * @author Cameron Tauxe
-	 * @version 2.0
 	 */
 
 	//If CINEMA_COMPONENTS is already defined, add to it, otherwise create it

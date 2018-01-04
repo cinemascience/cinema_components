@@ -5,13 +5,14 @@
 	 * COMPONENT
 	 * 
 	 * The Component module for the CINEMA_COMPONENTS library.
-	 * Contiains the prototype object for components (PcoordSVG,PcoordCanvas,Glyph, etc.)
+	 * Contiains the constructor for components (PcoordSVG,PcoordCanvas,Glyph, etc.)
 	 * The object contains common methods and fields used by all components.
+	 * 
+	 * Also contains definitions for a few classes that may be used by components.
 	 * 
 	 * @exports CINEMA_COMPONENTS
 	 * 
 	 * @author Cameron Tauxe
-	 * @version 2.0
 	 */
 
 	//If CINEMA_COMPONENTS is already defined, add to it, otherwise create it
@@ -33,7 +34,7 @@
 	/**
 	 * Abstract constructor for Component.
 	 * Represents a component for displaying and interacting with a database.
-	 * Objects such as PcoordSVG, PcoordCanvas and Glyph inherit from this
+	 * Objects such as Pcoord and Glyph inherit from this
 	 * @param {DOM} parent - The DOM object to build this component inside of (all children will be removed)
 	 * @param {CINEMA_COMPONENTS.Database} database - The database behind this component
 	 * @param {RegExp} filterRegex - A regex to determine which dimensions to NOT show on the component
@@ -66,12 +67,45 @@
 		});
 
 		this.updateSize();
+
+		//Create DOM content
+		/** @type {d3.selection} The whole content of the component*/
+		this.container = d3.select(parent).append('div')
+			.classed('CINEMA_COMPONENT',true);
 	};
 
 	CINEMA_COMPONENTS.Component.prototype.updateSize = function(){
-		this.margin = this.margin || {top: 0, right: 0, bottom: 0, left: 0};//default margins
+		this.margin = this.margin || new CINEMA_COMPONENTS.Margin(0,0,0,0);
 		this.parentRect = this.parent.getBoundingClientRect();
 		this.internalWidth = this.parentRect.width - this.margin.left - this.margin.right;
 		this.internalHeight = this.parentRect.height - this.margin.top - this.margin.bottom;
 	};
+
+	/**
+	 * Constructor for Margin object
+	 * Defines the top,right,bottom and left margins for drawing a component.
+	 * @param {number} top - top margin (in pixels)
+	 * @param {number} right - right margin (in pixels)
+	 * @param {number} bottom - bottom margin (in pixels)
+	 * @param {number} left - left margin (in pixels)
+	 */
+	CINEMA_COMPONENTS.Margin = function(top,right,bottom,left) {
+		this.top = top;
+		this.right = right;
+		this.bottom = bottom;
+		this.left = left;
+	}
+
+	/**
+	 * Constructor for ExtraData object
+	 * Defines extra, custom data that may be shown on a component.
+	 * @param {Object} data - The data to show 
+	 *     (in the same format as the data points in the database)
+	 * @param {string} style - String representing how to draw the data.
+	 *     (the interpretation of this is up to specific components)
+	 */
+	CINEMA_COMPONENTS.ExtraData = function(data, style) {
+		this.data = data;
+		this.style = style;
+	}
 })();
