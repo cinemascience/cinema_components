@@ -89,12 +89,12 @@
 				//The text "NaN" (not case sensitive) counts as a float
 				if (!isNaN(val) || val.toUpperCase() === "NAN") {
 					if (isNaN(val) || !Number.isInteger(val))
-						self.dimensionsTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
+						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
 					else
-						self.dimensionsTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
+						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
 					//calculate domain for numeric dimension
 					var i;//the first index to contain a value that is not "NaN"
-					for (i = 0; i < self.data.length || isNaN(self.data[i][d]); i++) {}
+					for (i = 0; i < self.data.length && isNaN(self.data[i][d]); i++) {}
 					if (i == self.data.length)
 						//if all values are NaN, domain is [0,0]
 						self.dimensionDomains[d] = [0,0]
@@ -129,7 +129,7 @@
 	 * @param {string} dimension - The dimension to check
 	 */
 	CINEMA_COMPONENTS.Database.prototype.isStringDimension = function(dimension) {
-		return this.dimensionTypes[d] === CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
+		return this.dimensionTypes[dimension] === CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
 	};
 
 	/**

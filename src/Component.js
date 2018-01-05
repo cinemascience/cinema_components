@@ -66,12 +66,13 @@
 			return filterRegex ? !filterRegex.test(d) : true;
 		});
 
-		this.updateSize();
-
 		//Create DOM content
-		/** @type {d3.selection} The whole content of the component*/
-		this.container = d3.select(parent).append('div')
-			.classed('CINEMA_COMPONENT',true);
+		/** @type {DOM} The whole content of the component*/
+		this.container = parent.appendChild(document.createElement('div'));
+		this.container.setAttribute('class','CINEMA_COMPONENT');
+		this.container.style.position = 'relative';
+
+		CINEMA_COMPONENTS.Component.prototype.updateSize.call(this);
 	};
 
 	CINEMA_COMPONENTS.Component.prototype.updateSize = function(){
@@ -79,6 +80,9 @@
 		this.parentRect = this.parent.getBoundingClientRect();
 		this.internalWidth = this.parentRect.width - this.margin.left - this.margin.right;
 		this.internalHeight = this.parentRect.height - this.margin.top - this.margin.bottom;
+
+		this.container.style.width = this.parentRect.width+'px'
+		this.container.style.height = this.parentRect.height+'px';
 	};
 
 	/**

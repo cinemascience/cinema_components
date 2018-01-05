@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 (function() {
 	/**
 	 * CINEMA_COMPONENTS
@@ -27,7 +27,7 @@
 			" is included BEFORE Pcoord module");
 
 	//Require that d3 be included
-	if (!d3) {
+	if (!window.d3) {
 		throw new Error("CINEMA_COMPONENTS Pcoord module requires that"+
 		" d3 be included (at least d3v4). Please make sure that d3 is included BEFORE the"+
 		" the Pcoord module");
@@ -62,7 +62,7 @@
 
 		//call super-constructor
 		CINEMA_COMPONENTS.Component.call(this,parent,database,filterRegex);
-		//after size is calculated in the super-constructor. Set NaNMargin
+		//after size is calculated in the super-constructor, Set NaNMargin
 		this.NaNMargin = this.internalHeight/11;
 
 		/***************************************
@@ -70,10 +70,10 @@
 		 ***************************************/
 
 		/** @type {number[]} Indices of all currently selected data */
-		this.selection = []
-		/** @type {number} Index of currently highlighted data point */
-		this.highlight;
-		/** @type {CINEMA_COMPONENTS.ExtraData[]} Custom data to overal on chart */
+		this.selection = d3.range(0,this.db.data.length);
+		/** @type {number} Indices of all currently highlighted data*/
+		this.highlighted = [];
+		/** @type {CINEMA_COMPONENTS.ExtraData[]} Custom data to overlay on chart */
 		this.overlayData = [];
 
 		/***************************************
@@ -85,9 +85,9 @@
 		 * 'selectionchange': Triggered when selection of data changes
 		 *     (called with array of indices of selected data)
 		 * 'mouseover': Triggered when a path is moused over
-		 *     (called with index of moused over data)
+		 *     (called with index of moused over data and reference to mouse event)
 		 * 'click': Triggered when a path is clicked on
-		 *     (called with index of clicked data)
+		 *     (called with index of clicked data and reference to mouse event)
 		 */
 		this.dispatch = d3.dispatch("selectionchange","mouseover","click");
 
@@ -95,14 +95,14 @@
 		 * SCALES
 		 ***************************************/
 
-		/** @type {d3.scalePoint (function)} - Scale for x axis on chart
+		/** @type {d3.scalePoint} - Scale for x axis on chart
 		 * Maps dimensions to position (in pixels) along width of chart.*/
 		this.x = d3.scalePoint()
 			.domain(this.dimensions)
 			.range([0,this.internalWidth])
 			.padding(1);
 
-		/** @type {Object(d3.scale (function))} 
+		/** @type {Object(d3.scale)} 
 		 * Scales for each dimension axis on the chart. One scale for each dimension */
 		this.y = {};
 		this.dimensions.forEach(function (d) {
@@ -124,12 +124,6 @@
 
 		/** @type {Object (numbers)} Keeps track of the x-position of each axis currently being dragged */
 		this.dragging = {};
-		/** @type {d3.drag} */
-		this.drag = d3.drag()
-			.subject(function(d){return {x: self.x(d)};})
-			.on('start',this.axisDragStart)
-			.on('drag',this.axisDrag)
-			.on('end',this.axisDragEnd);
 
 		//Drag event handlers
 		this.axisDragStart = function(d) {
@@ -152,6 +146,13 @@
 			self.redrawPaths();
 		};
 
+		/** @type {d3.drag} */
+		this.drag = d3.drag()
+			.subject(function(d){return {x: self.x(d)};})
+			.on('start',this.axisDragStart)
+			.on('drag',this.axisDrag)
+			.on('end',this.axisDragEnd);
+
 		/***************************************
 		 * BRUSHES
 		 ***************************************/
@@ -159,11 +160,8 @@
 		 /** @type {Object (Arrays)} Keeps track of the extents of the brush for each dimension*/
 		this.brushExtents = {}
 
-		/** @type {d3.brushY} The brushes for each axis */
-		this.brush = d3.brushY()
-			.extent([[-8,0],[8,this.internalHeight]])
-			.on('start', function(){d3.event.sourceEvent.stopPropagation();})
-			.on('start brush',axisBrush);
+		/** @type {boolean} If true, don't update selection when brushes change */
+		this.dontUpdateSelectionOnBrush = false;
 
 		//Brush event handler
 		this.axisBrush = function(d) {
@@ -175,8 +173,15 @@
 				if (self.brushExtents[d] != null && self.brushExtents[d][0] === self.brushExtents[d][1])
 					delete self.brushExtents[d];
 			}
-			self.updateSelection();
+			if (!self.dontUpdateSelectionOnBrush)
+				self.updateSelection();
 		}
+
+		/** @type {d3.brushY} The brushes for each axis */
+		this.brush = d3.brushY()
+			.extent([[-8,0],[8,this.internalHeight]])
+			.on('start', function(){d3.event.sourceEvent.stopPropagation();})
+			.on('start brush',this.axisBrush);
 
 		/***************************************
 		 * DOM Content
@@ -184,20 +189,37 @@
 
 		//Create DOM content
 		//Specify that this is a Pcoord component
-		this.container.classed('PCOORD',true);
+		d3.select(this.container).classed('PCOORD',true);
 		/** @type {d3.selection} Where the paths for the chart will be drawn
 		 * The actual drawing of paths depends on the specific Pcoord subclass
 		 */
-		this.pathContainer = this.container.append('div')
-			.classed('pathContainer',true);
+		this.pathContainer = d3.select(this.container).append('div')
+			.classed('pathContainer',true)
+			.style('position','absolute')
+			.style('width',this.parentRect.width+'px')
+			.style('height',this.parentRect.height+'px');
+
+		/** @type {boolean} Indicates if the lines on the chart should be smooth(curved) or not 
+		 * Be sure to call redrawPaths() after changing this so it takes effect
+		*/
+		this.smoothPaths = true;
 
 		/***************************************
 		 * AXES
 		 ***************************************/
 
 		/** @type {d3.selection} The container for all axes (as an svg object) */
-		this.axisContainer = this.container.append('svg')
-			.classed('axisContainer',true);
+		this.axisContainer = d3.select(this.container).append('svg')
+			.classed('axisContainer',true)
+			.style('position','absolute')
+			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
+							(this.parentRect.width)+' '+
+							(this.parentRect.height))
+			.attr('preserveAspectRatio','none')
+			.attr('width','100%')
+			.attr('height','100%')
+			//disable pointer events on axisContainer so it doesn't block pathContainer
+			.style('pointer-events','none');
 		/** @type {d3.selction} Groups for each axis */
 		this.axes = this.axisContainer.selectAll('.axisGroup')
 			.data(this.dimensions)
@@ -211,11 +233,15 @@
 		this.axes.append('g')
 			.classed('axis',true)
 			.each(function(d) {
-				d3.select(this).call(d3.axisLeft.scale(self.y[d]));
+				d3.select(this).call(d3.axisLeft().scale(self.y[d]));
 				if (!self.db.isStringDimension(d))
 					self.addNaNExtensionToAxis(this);
 			})
 		.append('text')
+			.classed('axisTitle',true)
+			//allow pointer-events on axisTitle so axes can be dragged
+			.style('pointer-events','initial')
+			.style('text-anchor','middle')
 			.attr('y',-9)
 			.text(function(d){return d;});
 		//Add brush group to each axis group
@@ -252,15 +278,20 @@
 	 * Should be called every time the size of the chart's container changes.
 	 * Updates the sizing and scaling of all parts of the chart and redraws
 	 */
-	CINEMA_COMPONENTS.Pcoord.updateSize = function() {
+	CINEMA_COMPONENTS.Pcoord.prototype.updateSize = function() {
 		var self = this;
 		var oldHeight = this.internalHeight;//old height needed to rescale brushes
 
 		//Call super (will recalculate size)
-		CINEMA_COMPONENTS.Component.updateSize.call(this);
+		CINEMA_COMPONENTS.Component.prototype.updateSize.call(this);
 
 		//update NaNMargin
 		this.NaNMargin = this.internalHeight/11;
+
+		//update PathContainer size
+		this.pathContainer
+			.style('width',this.parentRect.width+'px')
+			.style('height',this.parentRect.height+'px');
 
 		//Rescale x
 		this.x.range([0,this.internalWidth]);
@@ -273,13 +304,17 @@
 		this.redrawPaths();
 
 		//Reposition and rescale axes
+		this.axisContainer
+			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
+						(this.parentRect.width)+' '+
+						(this.parentRect.height));
 		this.axes.attr("transform", function(d) {
 			return "translate("+self.getXPosition(d)+")";
 		});
 		this.axes.each(function(d) {
-			d3.select(this).call(d3.axisLeft.scale(self.y[d]));
+			d3.select(this).call(d3.axisLeft().scale(self.y[d]));
 			//if scale is linear, then update the NaN extension on the axis
-			if (!self.isStringDimension(d)) {
+			if (!self.db.isStringDimension(d)) {
 				d3.select(this).select('path.NaNExtension')
 					.attr('d',"M0.5,"+String(self.internalHeight-self.NaNMargin+0.5)+"V"+String(self.internalHeight-0.5));
 				d3.select(this).select('.NaNExtensionTick')
@@ -288,8 +323,10 @@
 		});
 
 		//Redraw brushes
+		this.dontUpdateSelectionOnBrush = true; //avoid updating selection when resizing brushes
 		this.brush.extent([[-8,0],[8,this.internalHeight]]);
 		this.axes.selectAll('g.brush').each(function(d) {
+			d3.select(this).call(self.brush);
 			d3.select(this).call(self.brush.move, function() {
 				if (self.brushExtents[d] == null)
 					return null;
@@ -299,6 +336,7 @@
 				});
 			});
 		});
+		this.dontUpdateSelectionOnBrush = false;
 	}
 
 	/**
@@ -309,7 +347,7 @@
 	CINEMA_COMPONENTS.Pcoord.prototype.updateSelection = function() {
 		var self = this;
 		var newSelection = [];
-		this.db.data.each(function(d,i) {
+		this.db.data.forEach(function(d,i) {
 			var selected = true;
 			for (var p in self.dimensions) {
 				var extent = self.brushExtents[self.dimensions[p]];
@@ -324,17 +362,18 @@
 				newSelection.push(i);
 		});
 		if (!arraysEqual(this.selection,newSelection)) {
-			this.selction = newSelection;
-			redrawSelectedPaths();
+			this.selection = newSelection;
+			this.dispatch.call("selectionchange",this, this.selection);
+			this.redrawSelectedPaths();
 		}
 	}
 
 	/**
-	 * Set the index of the currently highlighted data point
+	 * Set the indices of the currently highlighted data
 	 */
-	CINEMA_COMPONENTS.Pcoord.prototype.setHighlight = function(index) {
-		this.highlight = index;
-		redrawHighlightedPath();
+	CINEMA_COMPONENTS.Pcoord.prototype.setHighlightedPaths = function(indices) {
+		this.highlighted = indices;
+		this.redrawHighlightedPaths();
 	}
 
 	/**
@@ -342,13 +381,13 @@
 	 */
 	CINEMA_COMPONENTS.Pcoord.prototype.setOverlayPaths = function(data) {
 		this.overlayData = data;
-		redrawOverlayPaths();
+		this.redrawOverlayPaths();
 	};
 
 	//Shortcut function for redrawSelectedPaths, redrawHighlightedPath, redrawOverlayPaths
 	CINEMA_COMPONENTS.Pcoord.prototype.redrawPaths = function() {
 		this.redrawSelectedPaths();
-		this.redrawHighlightedPath();
+		this.redrawHighlightedPaths();
 		this.redrawOverlayPaths();
 	}
 
@@ -387,7 +426,7 @@
 	 * Redraw the currently highlighted path.
 	 * Actual implementation is up to specific subclasses
 	 */
-	CINEMA_COMPONENTS.Pcoord.prototype.redrawHighlightedPath = function() {
+	CINEMA_COMPONENTS.Pcoord.prototype.redrawHighlightedPaths = function() {
 		throw new Error("Cannot call abstract function 'redrawHighlightedPaths()'!"+
 			" Please override function in a subclass");
 	}
@@ -465,7 +504,7 @@
 	 * Get the x-coordinate of the axis representing the given dimension
 	 * @param {string} d - The dimension to get the x-coordinate for
 	 */
-	ParallelCoordinatesChart.prototype.getXPosition = function(d) {
+	CINEMA_COMPONENTS.Pcoord.prototype.getXPosition = function(d) {
 		var v = this.dragging[d];
 		return v == null ? this.x(d) : v;
 	};
@@ -475,7 +514,7 @@
 	 * @param {string} d - The dimension on the data point
 	 * @param {Object} p - The data point
 	 */
-	ParallelCoordinatesChart.prototype.getYPosition = function(d, p) {
+	CINEMA_COMPONENTS.Pcoord.prototype.getYPosition = function(d, p) {
 		if (!this.db.isStringDimension(d) && isNaN(p[d]))
 			//If the value is NaN on a linear scale, return internalHeight as the position 
 			//(to place the line on the NaN tick)

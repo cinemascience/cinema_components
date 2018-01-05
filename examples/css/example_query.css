@@ -30,68 +30,66 @@ This is based on the example of the Nutrient Explorer, copyright 2012, Kai
 Chang, and is licensed appropriately.
 */
 
-.pCoordChart {
-	font: 10px sans-serif;
-    background-color: whitesmoke;
+#picked,
+#selection {
+	box-sizing: border-box;
+	margin: 10px;
+	background-color: rgb(124, 196, 233);
+	padding: 10px;
+	box-shadow: 2px 2px 3px dimgray;
+}
+#picked {
+	float: left;
+	margin-left: 50px;
+	width: 40%;
+}
+#selection {
+	margin-right: 50px;
+	float: right;
+	width: 50%
 }
 
-.pCoordChart path{
-	fill: none;
-	stroke-width: 2px;
-	stroke: lightgray;
-	stroke-opacity: 0.3;
-
-	vector-effect: non-scaling-stroke;
+#queryButton {
+	margin: 5px;
+	padding: 4px;
+	font-size: 16px;
+	color: white;
+	background-color: rgb(120, 219, 185);
+	border: 1px solid rgb(98, 193, 160);
+	border-bottom: 3px solid rgb(98, 193, 160);
 }
-.pCoordChart path[mode="inactive"] {
-	display: none;
+#queryButton:hover {
+	background-color: rgb(98, 193, 160);
 }
-
-.pCoordChart .highlightPath { 
-	pointer-events: none;
-	stroke-width: 4px;
-	stroke: lightskyblue;
-	stroke-opacity: 1;
+#queryButton:active {
+	transform: translateY(2px);
 }
-
-.pCoordChart .overlayPath {
-	pointer-events: none;
-	stroke-dasharray: 20, 10;
-	stroke: crimson;
-	stroke-opacity: 1;
+#queryButton:disabled {
+	border: 1px solid rgb(154, 186, 175);
+	background-color: rgb(154, 186, 175);
+	transform: initial;
 }
 
-.pCoordChart .brush .extent {
-	fill-opacity: .3;
-	stroke: #fff;
-	shape-rendering: crispEdges;
+#threshold {
+	padding: 3px;
+	width: 100px;
 }
 
-.pCoordChart .axis line,
-.pCoordChart .axis path {
-	fill: none;
-	stroke: black; 
-	shape-rendering: crispEdges;
+.pickedView {
+	display: inline-block;
+	background-color: rgb(98, 193, 160);
+	box-shadow: 2px 2px 3px dimgray;
+	padding: 5px;
+	margin: 5px;
 }
-
-.pCoordChart .axis path.NaNExtension,
-.pCoordChart .axis .NaNExtensionTick line {
-	stroke: rgb(196, 23, 57);
+.pickedView:hover,
+.pickedView:hover[mode="picked"] {
+	background-color: rgb(206, 111, 111);
+	cursor: pointer;
 }
-.pCoordChart .axis .NaNExtensionTick text{
-	fill: rgb(196, 23, 57);
+.pickedView[mode="picked"] {
+	background-color: rgb(120, 219, 185);
 }
-
-.pCoordChart .axis text {
-	fill: black;
-	cursor: move;
-}
-
-.pCoordChart .errorMessage {
-	position: absolute;
-	top: 5px;
-	left: 5px;
-
-	fill: rgb(196, 23, 57);
-	font-size: 14px;
+.pickedView[mode="preview"] {
+	background-color: rgb(98, 193, 160);
 }

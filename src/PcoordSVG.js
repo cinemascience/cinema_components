@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 (function() {
 	/**
 	 * CINEMA_COMPONENTS
@@ -41,12 +41,124 @@
 		//call super-constructor
 		CINEMA_COMPONENTS.Pcoord.call(this,parent,database,filterRegex);
 
+		//Specify that this is a Pcoord SVG component
+		d3.select(this.container).classed('SVG',true);
+
 		//Add SVG Components to pathContainer
-		this.paths = 
+		this.svg = this.pathContainer.append('svg')
+			.style('position','absolute')
+			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
+							(this.parentRect.width)+' '+
+							(this.parentRect.height))
+			.attr('preserveAspectRatio','none')
+			.attr('width','100%')
+			.attr('height','100%');
+		//Add group for selected paths
+		this.selectedPaths = this.svg.append('g')
+			.classed('selectedPaths',true);
+		//Add group for highlighted paths
+		this.highlightedPaths = this.svg.append('g')
+			.classed('highlightedPaths',true);
+		//Add group for overlay paths
+		this.overlayPaths = this.svg.append('g')
+			.classed('overlayPaths',true);
+
+		//Path event handlers
+		this.onPathMouseover = function(index) {
+			this.dispatch.call("mouseover",this,index,d3.event);
+		}
+		this.onPathClick = function(index) {
+			this.dispatch.call("click",this,index,d3.event);
+		}
+
+		this.redrawPaths();
 	}
 	//establish prototype chain
 	CINEMA_COMPONENTS.PcoordSVG.prototype = Object.create(CINEMA_COMPONENTS.Pcoord.prototype);
 	CINEMA_COMPONENTS.PcoordSVG.prototype.constructor = CINEMA_COMPONENTS.PcoordSVG;
 
+	/**************************
+	 * OVERRIDE METHODS
+	 **************************/
+
+	CINEMA_COMPONENTS.PcoordSVG.prototype.updateSize = function() {
+		//call super
+		CINEMA_COMPONENTS.Pcoord.prototype.updateSize.call(this);
+
+		//rescale svg
+		this.svg
+			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
+							(this.parentRect.width)+' '+
+							(this.parentRect.height));
+	}
+
+	/**
+	 * Redraw the current selection of paths.
+	 * Actual implementation is up to specific subclasses
+	 */
+	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawSelectedPaths = function() {
+		var self = this;
+		//Bind to selection and update
+		var update = this.selectedPaths
+			.selectAll('path').data(this.selection);
+		update.enter() //ENTER
+			.append('path')
+		.merge(update) //ENTER + UPDATE
+			.attr('index',function(d){return d;})
+			.attr('d',function(d){
+				return self.getPath(self.db.data[d]);
+			})
+			.on('mouseenter',function(d){
+				self.dispatch.call("mouseover",self,d,d3.event);
+			})
+			.on('mouseleave',function(d){
+				self.dispatch.call("mouseover",self,null,d3.event);
+			})
+			.on('click', function(d) {
+				self.dispatch.call("click",self,d);
+			});
+		update.exit() //EXIT
+			.remove();
+	}
+
+	/**
+	 * Redraw the currently highlighted path.
+	 * Actual implementation is up to specific subclasses
+	 */
+	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawHighlightedPaths = function() {
+		var self = this;
+		//Bind to highlighted and update
+		var update = this.highlightedPaths
+			.selectAll('path').data(this.highlighted);
+		update.enter() //ENTER
+			.append('path')
+		.merge(update) //ENTER + UPDATE
+			.attr('index',function(d){return d;})
+			.attr('d',function(d){
+				return self.getPath(self.db.data[d]);
+			});
+		update.exit() //EXIT
+			.remove();
+	}
+
+	/**
+	 * Redraw the overlay paths.
+	 * Actual implementation is up to specific subclasses
+	 */
+	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawOverlayPaths = function() {
+		var self = this;
+		//Bind to overlayData and update
+		var update = this.overlayPaths
+			.selectAll('path').data(this.overlayData);
+		update.enter() //ENTER
+			.append('path')
+		.merge(update) //ENTER + UPDATE
+			.attr('style',function(d){return d.style;})
+			.attr('d',function(d){
+				return self.getPath(d.data);
+			});
+		update.exit() //EXIT
+			.remove();
+	}
 
 })();

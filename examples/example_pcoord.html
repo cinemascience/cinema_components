@@ -38,24 +38,26 @@ Chang, and is licensed appropriately.
 	<title>Parallel Coordinates Example (Cars)</title>
 	<meta charset="utf-8">
 	<meta name='author' content="Cameron Tauxe">
-	<link rel='stylesheet' href='example.css'>
-	<!--Don't forget to add the component's stylsheet!-->
-	<link rel="stylesheet" href="parallelCoordinates.css">
+	<link rel='stylesheet' href='css/example_pcoord.css'>
+	<!--Import d3-->
 	<script src="lib/d3.min.js"></script>
-	<!--Import chart component (don't forget d3!)-->
-	<script src = 'ParallelCoordinatesChart.js'></script>
+	<!--Import library-->
+	<script src = 'lib/CinemaComponents.min.js'></script>
+	<!--Include Component's CSS-->
+	<link rel='stylesheet' href='css/PcoordSVG.css'>
 </head>
 <body>
 	<div id="header">
 		<h1>Parallel Coordinates Example (Cars)</h1>
 	</div>
-	<!--The component will be placed into svgContainer.
+	<!--The component will be placed into componentContainer.
 		It will try to match its container's size exactly
 		so if you want padding and margins and such,
-		it is advisable to wrap the container (inside svgArea in this case)-->
-	<div id="svgArea">
-		<div id="svgContainer"></div>
+		it is advisable to wrap the container (inside componentArea in this case)-->
+	<div id="componentArea">
+		<div id="componentContainer"></div>
 	</div>
+	<!--Resize bar is click-and-dragged to resize the componentArea-->
 	<div id="resizeBar"></div>
 	<div id="resultsArea">
 		<!--Show a sample of the currently selected cars-->
@@ -72,22 +74,82 @@ Chang, and is licensed appropriately.
 	</div>
 
 	<script>
-		//Create chart
+		var chart;
+
+		//Create Database
+		var db = new CINEMA_COMPONENTS.Database('data/cars.cdb',doneLoading);
 		var loaded = false;
-		var chart = new ParallelCoordinatesChart(d3.select('#svgContainer'),//container
-												'cars.csv',//path to csv
-												/^name$/,//dimension filter
-												doneLoading);
-		//chart.smoothPaths = false; //uncomment this to make the paths straight
+
 		/**
 		 * Loading callback function.
 		 * Called when the database is done loading.
-		 * (some functions may want to check that loading is done before
-		 * doing things to the chart)
 		 */
 		function doneLoading() {
 			loaded = true;
-		}
+
+			//Create chart from database
+			// /^name$/ is a regex filtering out the name dimension of the data so that it doesn't show on the chart
+			chart = new CINEMA_COMPONENTS.PcoordSVG(d3.select('#componentContainer').node(),db,/^name$/);
+
+			//Setup Event listeners on chart
+
+			/**
+			 * Respond to selection change event
+			 * This is called whenever the selection in the chart changes
+			 * and sends an array of the indices of the selected results
+			 * as an argument.
+			 * 
+			 * This particular example takes a sample of the selected cars
+			 * and adds a viewport for each one to the selectionReadout area.
+			 */
+			chart.dispatch.on("selectionchange", function(query) {
+				var sampleSize = 25;
+				var sample = (query.length > sampleSize ? getSample(query,sampleSize) : query);
+				d3.select('#selectionReadout').html('').selectAll('.resultView')
+					.data(sample)
+					.enter()
+						.append('div').attr('class','resultView')
+						.each(function(d){createResultViewContent(this, d);})
+				d3.select('#selectionMore')
+					.text(query.length > 25 ? ('...and '+(query.length-sampleSize)+' more.') : '');
+			});
+
+			/**
+			 * Respond to mouseover event
+			 * This is called whenever a result in the chart is moused-over.
+			 * It passes the index of the result as the first argument
+			 * and the mouse event that triggered it as the second argument (if you need it).
+			 * when a result is moused-off, this is called again with the index being null
+			 * 
+			 * This particular example creates a viewport for the result and adds it
+			 * to the mouseOverReadout area.
+			 * Also sets the highlighted path in the chart
+			 */
+			chart.dispatch.on("mouseover", function(i) {
+				if (i != null) {
+					d3.select('#mouseOverReadout').html('')
+						.append('div').attr('class', 'resultView')
+						.each(function(){createResultViewContent(this, i);});
+					chart.setHighlightedPaths([i]);
+				}
+				else {
+					d3.select('#mouseOverReadout').html('')
+						.append('div').attr('class','resultView')
+						.text('None');
+					chart.setHighlightedPaths([]);
+				}
+			});
+
+			//Uncomment these lines to make the lines on the chart straight
+			//chart.smoothPaths = false;
+			//chart.redrawPaths();
+
+			//Trigger updates
+			//This will put the data readouts into their initial state
+			chart.dispatch.call('mouseover',chart,null);
+			chart.dispatch.call("selectionchange",chart, chart.selection);
+
+		} //end doneLoading()
 
 		/**
 		 * It is important to call updateSize() whenever the size of the
@@ -106,57 +168,13 @@ Chang, and is licensed appropriately.
 			})
 			.on('drag', function() {
 				var headerRect = d3.select('#header').node().getBoundingClientRect();
-				d3.select('#svgArea').style('height',(d3.event.y - headerRect.height)+'px');
+				d3.select('#componentArea').style('height',(d3.event.y - headerRect.height)+'px');
 				chart.updateSize();
 			})
 			.on('end', function() {
 				d3.select(this).attr('mode', 'default');
 			});
 		d3.select('#resizeBar').call(resizeDrag);
-
-		/**
-		 * Respond to selection change event
-		 * This is called whenever the selection in the chart changes
-		 * and sends an array of the indices of the selected results
-		 * as an argument.
-		 * 
-		 * This particular example takes a sample of the selected cars
-		 * and adds a viewport for each one to the selectionReadout area.
-		 */
-		chart.dispatch.on("selectionchange", function(query) {
-			var sampleSize = 25;
-			var sample = (query.length > sampleSize ? getSample(query,sampleSize) : query);
-			d3.select('#selectionReadout').html('').selectAll('.resultView')
-				.data(sample)
-				.enter()
-					.append('div').attr('class','resultView')
-					.each(function(d){createResultViewContent(this, d);})
-			d3.select('#selectionMore')
-				.text(query.length > 25 ? ('...and '+(query.length-sampleSize)+' more.') : '');
-		});
-
-		/**
-		 * Respond to mouseover event
-		 * This is called whenever a result in the chart is moused-over.
-		 * It passes the index of the result as the first argument
-		 * and the mouse event that triggered it as the second argument (if you need it).
-		 * when a result is moused-off, this is called again with the index being null
-		 * 
-		 * This particular example creates a viewport for the result and adds it
-		 * to the mouseOverReadout area.
-		 */
-		chart.dispatch.on("mouseover", function(i) {
-			if (i != null) {
-				d3.select('#mouseOverReadout').html('')
-					.append('div').attr('class', 'resultView')
-					.each(function(){createResultViewContent(this, i);});
-			}
-			else {
-				d3.select('#mouseOverReadout').html('')
-					.append('div').attr('class','resultView')
-					.text('None');
-			}
-		});
 
 		/**
 		 * Creates a viewport inside the given parent for the result represented
@@ -174,16 +192,16 @@ Chang, and is licensed appropriately.
 		function createResultViewContent(parent, d) {
 			d3.select(parent)
 				.text(function() {
-					return (chart.results[d].name +
-							' ('+chart.results[d].year+'\')');
+					return (db.data[d].name +
+							' ('+db.data[d].year+'\')');
 				})
 				.on('mouseenter', function() {
 					//set the highlight in the chart by giving it the index of the result
-					chart.setHighlight(d);
+					chart.setHighlightedPaths([d]);
 				})
 				.on('mouseleave', function() {
-					//setting the highlight to null will remove the highlight in the chart
-					chart.setHighlight(null);
+					//remove the highlight in the chart by setting it to an empty array
+					chart.setHighlightedPaths([]);
 				});
 		}
 
