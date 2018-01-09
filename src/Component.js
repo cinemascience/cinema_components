@@ -70,19 +70,31 @@
 		/** @type {DOM} The whole content of the component*/
 		this.container = parent.appendChild(document.createElement('div'));
 		this.container.setAttribute('class','CINEMA_COMPONENT');
-		this.container.style.position = 'relative';
+		this.container.style.position = 'absolute';
 
 		CINEMA_COMPONENTS.Component.prototype.updateSize.call(this);
 	};
 
+	/**
+	 * Resize this component to fit the size of its parent.
+	 * This should be called every time the size of the component's
+	 * parent changes.
+	 */
 	CINEMA_COMPONENTS.Component.prototype.updateSize = function(){
 		this.margin = this.margin || new CINEMA_COMPONENTS.Margin(0,0,0,0);
 		this.parentRect = this.parent.getBoundingClientRect();
 		this.internalWidth = this.parentRect.width - this.margin.left - this.margin.right;
 		this.internalHeight = this.parentRect.height - this.margin.top - this.margin.bottom;
 
-		this.container.style.width = this.parentRect.width+'px'
+		this.container.style.width = this.parentRect.width+'px';
 		this.container.style.height = this.parentRect.height+'px';
+	};
+
+	/**
+	 * Remove this component from the scene
+	 */
+	CINEMA_COMPONENTS.Component.prototype.destroy = function() {
+		d3.select(this.container).remove();
 	};
 
 	/**

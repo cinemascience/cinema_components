@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.0
+## Version 2.1
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
 **Requires D3v4**
@@ -11,9 +11,13 @@ A component for viewing and browsing a database on a Parallel Coordinates Chart 
 (Coming Soon!)
 ### Glyph
 A component for viewing data on a Glyph Chart
+### ImageSpread
+A component for viewing image data for a set of data points
+### Query
+A component that provides an interface for defining a custom data point and querying the database for similar points.
 
 ## Usage
-Below is a simple example of a webpage containing a PcoordSVG component
+Below is a simple example of a webpage that uses a pcoordSVG component to control the display of an ImageSpread component
 ```html
 <html>
 <head>
@@ -23,17 +27,25 @@ Below is a simple example of a webpage containing a PcoordSVG component
 	<script src="CinemaComponents.min.js"></script>
 	<!--Include Component's CSS-->
 	<link rel='stylesheet' href='css/PcoordSVG.css'>
+	<link rel='stylesheet' href='css/ImageSpread.css'>
 </head>
 <body>
 	<!--The component will be placed inside container-->
-	<div id="container" style="width:500px;height:400px;"></div>
+	<div id="pcoord_container" style="width:500px;height:400px;"></div>
+	<div id="spread_container" style="width:100%;height:400px;"></div>
 	<script>
-		var chart;
+		var chart, spread;
 		//First create a database
 		var database = new CINEMA_COMPONENTS.Database('mydata.cdb',function() {
 			//This callback function is called when the database has finished loading
-			//Use it to create your component
-			chart = new CINEMA_COMPONENTS.PcoordSVG(document.getElementByID('container'), database);
+			//Use it to create your components
+			chart = new CINEMA_COMPONENTS.PcoordSVG(document.getElementByID('pcoord_container'), database);
+			spread = new CINEMA_COMPONENTS.ImageSpread(document.getElementByID('spread_container'),database);
+
+			//Using dispatch events, components can communicate with each other
+			chart.dispatch.on('selectionchange',function(selection) {
+				spread.setSelection(selection);
+			});
 		});
 	</script>
 </body>
@@ -47,12 +59,14 @@ Please see example files for more information: **example_pcoord.html**,
 
 The **CinemaComponents.min.js** file can be built with whatever minify-ing tool you prefer, but please be aware of the following rules when building:
 * Database.js *must* be included before Component.js
-* Component.js *must* be included before Glyph.js and Pcoord.js
+* Component.js *must* be included before Glyph.js, Pcoord.js, ImageSpread.js and Query.js
 * Pcoord.js *must* be included before PcoordSVG.js
 
 ## Full Documentation Coming Soon
 
 ## Changelog
-
+### Version 2.1
+- Added ImageSpread and Query components (ported over from pcoord_viewer project)
+- Added destroy() function to Component
 ### Version 2.0
 - First release of this major rewrite
