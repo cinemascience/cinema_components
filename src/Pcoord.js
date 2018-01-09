@@ -88,8 +88,10 @@
 		 *     (called with index of moused over data and reference to mouse event)
 		 * 'click': Triggered when a path is clicked on
 		 *     (called with index of clicked data and reference to mouse event)
+		 * 'axisorderchange': Triggered when the axis ordering is manually changed
+		 *     (called with the list of the dimensions in the new order)
 		 */
-		this.dispatch = d3.dispatch("selectionchange","mouseover","click");
+		this.dispatch = d3.dispatch("selectionchange","mouseover","click","axisorderchange");
 
 		/***************************************
 		 * SCALES
@@ -132,9 +134,12 @@
 		this.axisDrag = function(d) {
 			self.dragging[d] = Math.min(self.internalWidth,Math.max(0,d3.event.x));
 			self.redrawPaths();
+			var oldDimensions = self.dimensions.slice();
 			self.dimensions.sort(function(a,b){
 				return self.getXPosition(a)-self.getXPosition(b);
 			});
+			if (!arraysEqual(oldDimensions,self.dimensions))
+				self.dispatch.call('axisorderchange',self,self.dimensions);
 			self.x.domain(self.dimensions);
 			self.axes.attr('transform',function(d) {
 				return "translate("+self.getXPosition(d)+")";
@@ -411,6 +416,27 @@
 			});
 		//call brush event handler
 		this.axisBrush();
+	}
+
+	/**
+	 * Reorder the axes to the order given
+	 */
+	CINEMA_COMPONENTS.Pcoord.prototype.setAxisOrder = function(order) {
+		var self = this;
+		//update domain
+		this.x.domain(order.filter(function(d) {
+			return self.dimensions.includes(d); //filter out unused dimensions
+		}));
+		//update dimensions list
+		self.dimensions.sort(function(a,b){
+			return self.getXPosition(a)-self.getXPosition(b);
+		});
+		//update axes
+		this.axes.attr('transform',function(d) {
+			return "translate("+self.getXPosition(d)+")";
+		});
+		//redraw
+		this.redrawPaths();
 	}
 
 	/**

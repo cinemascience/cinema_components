@@ -62,6 +62,11 @@
 		/** @type {Object} - Contains the domains for each dimension (formatted like the domain for a d3 scale) */
 		this.dimensionDomains = {};
 
+		/** @type {boolean} Whether or not this database has additional axis ordering data */
+		this.hasAxisOrdering = false;
+		/** @type {Object} Axis Ordering data (if it exists) */
+		this.axisOrderData;
+
 		var self = this;
 		getAndParseCSV(directory+'/data.csv', function(data_arr) {
 			//Check for errors
@@ -117,9 +122,28 @@
 				}
 			});
 
-			self.loaded = true;
-			if (callback)
-				callback(self);
+			//Attempt to load an axis_order.csv file
+			getAndParseCSV(directory+'/axis_order.csv',
+				//Normal callback, if axis_order.csv found
+				function(axis_data_arr) {
+					var error = checkAxisDataErrors(axis_data_arr,self.dimensions);
+					if (!error) {
+						self.hasAxisOrdering = true;
+						self.axisOrderData = parseAxisOrderData(axis_data_arr);
+					}
+					else
+						console.warn("ERROR in axis_order.csv: " + error);
+					self.loaded = true;
+					if (callback)
+						callback(self);
+				},
+				//Error callback, if axis_order.csv not found
+				function() {
+					self.loaded = true;
+					if (callback)
+						callback(self);
+				}
+			);
 		});
 	
 	};
@@ -181,16 +205,44 @@
 		return similar;
 	}
 	
+	/**
+	 * Parse this database's axis data from the given array of data (from axis_order.csv)
+	 */
+	var parseAxisOrderData = function(data_arr) {
+		var data = {};
+
+		data_arr.slice(1).forEach(function(row) {
+			var category = row[0];
+			if (!data[category])
+				data[category] = [];
+			var value = row[1];
+			data[category].push({name: value});
+			var ordering = data_arr[0].slice(2).map(function(d,i) {
+				return [row[i+2],i];
+			}).sort(function(a,b) {
+				if (a[0] === undefined) {return 1;}
+				if (b[0] === undefined) {return -1;}
+				return a[0]-b[0];
+			}).map(function(d) {return data_arr[0].slice(2)[d[1]];});
+			data[category][data[category].length-1].order = ordering;
+		});
+
+		return data;
+	}
+
 	//Fetch a csv file, parse data out of it. Return data with callback
-	var getAndParseCSV = function(path,callback) {
+	var getAndParseCSV = function(path,callback,errorCallback) {
 		var request = new XMLHttpRequest();
 		request.open("GET",path,true);
 		request.onreadystatechange = function() {
 			if (request.readyState === 4) {
-				if (request.status === 200 || request.status === 0) {
+				if (request.status === 200) {
 					var data = parseCSV(request.responseText);
 					if (callback)
 						callback(data);
+				}
+				else if (errorCallback) {
+					errorCallback();
 				}
 			}
 		}
@@ -267,6 +319,50 @@
 		for (var i in data)
 			if (data[i].length != testLength)
 				return "Each line must have an equal number of comma separated values (columns).";
+	}
+
+	/**
+	 * Check for critical errors in the given axis data
+	 * Checks against the given list of dimensions
+	 * Returns an error message if an error was found.
+	 * Doesn't return anything if no errors were found
+	 */
+	var checkAxisDataErrors = function(data, dimensions) {
+		//Check that there are at least two lines of data
+		if (data.length < 2)
+			return "The first and second lines in the file are required.";
+
+		//Check that all rows of data have the same length
+		var testLength = data[0].length;
+		for (var i in data)
+			if (data[i].length != testLength)
+				return "Each line must have an equal number of comma separated values (columns).";
+
+		//Check that there are dimensions+2 columns (+2 for category and value columns)
+		if (data[0].length !== dimensions.length+2)
+			return "All dimensions must be specified in the header of the file."
+
+		//Check that each dimension in the header is valid
+		for (var i = 2; i < data[0].length; i++) {
+			if (!dimensions.includes(data[0][i]))
+				return "Dimension in axis order file '"+data[0][i]+"' is not valid";
+		}
+
+		//Check that the first two columns contain to undefined values
+		for (var i = 0; i < data.length; i++) {
+			if (data[i][0] === undefined)
+				return "Category cannot be undefined."
+			if (data[i][1] === undefined)
+				return "Value cannot be undefined."
+		}
+
+		//Check that all other data are numbers
+		for (var i = 1; i < data.length; i++) {
+			for (var j = 2; j < data[i].length; j++) {
+				if (isNaN(data[i][j]) && data[i][j] !== undefined)
+					return "Values for dimensions cannot be NaN."
+			}
+		}
 	}
 
 })();

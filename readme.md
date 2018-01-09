@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.1
+## Version 2.2
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
 **Requires D3v4**
@@ -65,6 +65,10 @@ The **CinemaComponents.min.js** file can be built with whatever minify-ing tool 
 ## Full Documentation Coming Soon
 
 ## Changelog
+### Version 2.2
+- Databases now support extra axis ordering information (in axis_order.csv files)
+- Added setAxisOrder to Pcoord Component
+- Added dispatch 'axisorderchanged' to Pcoord Component
 ### Version 2.1
 - Added ImageSpread and Query components (ported over from pcoord_viewer project)
 - Added destroy() function to Component
