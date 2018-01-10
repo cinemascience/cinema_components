@@ -305,6 +305,10 @@
 		if (data.length < 2)
 			return "The first and second lines in the file are required.";
 
+		//Check that there at least two dimensions to the data
+		if (data[0].length < 2)
+			return "The dataset must include at least two dimensions";
+
 		//Check that there are no empty values in the first two rows
 		var emptyValFound = false;
 		for (var i in data[0])

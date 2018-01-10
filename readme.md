@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.2
+## Version 2.3
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
 **Requires D3v4**
@@ -15,6 +15,10 @@ A component for viewing data on a Glyph Chart
 A component for viewing image data for a set of data points
 ### Query
 A component that provides an interface for defining a custom data point and querying the database for similar points.
+### ScatterPlotSVG
+A component for viewing data on a Scatter plot (rendered with SVG)
+### ScatterPlotCanvas
+(Coming Soon!)
 
 ## Usage
 Below is a simple example of a webpage that uses a pcoordSVG component to control the display of an ImageSpread component
@@ -59,12 +63,16 @@ Please see example files for more information: **example_pcoord.html**,
 
 The **CinemaComponents.min.js** file can be built with whatever minify-ing tool you prefer, but please be aware of the following rules when building:
 * Database.js *must* be included before Component.js
-* Component.js *must* be included before Glyph.js, Pcoord.js, ImageSpread.js and Query.js
+* Component.js *must* be included before Glyph.js, Pcoord.js, ImageSpread.js, Query.js and ScatterPlot.js
 * Pcoord.js *must* be included before PcoordSVG.js
+* ScatterPlot.js *must* be included before ScatterPlotSVG.js
 
 ## Full Documentation Coming Soon
 
 ## Changelog
+### Version 2.3
+- Added ScatterPlotSVG Component
+- Databases now verfiy that there are at least two dimensions when error-checking
 ### Version 2.2
 - Databases now support extra axis ordering information (in axis_order.csv files)
 - Added setAxisOrder to Pcoord Component

@@ -13,7 +13,7 @@
 	 * @author Cameron Tauxe
 	 */
 
-	 //If CINEMA_COMPONENTS is already defined, add to it, otherwise create it
+	//If CINEMA_COMPONENTS is already defined, add to it, otherwise create it
 	var CINEMA_COMPONENTS = {}
 	if (window.CINEMA_COMPONENTS)
 		CINEMA_COMPONENTS = window.CINEMA_COMPONENTS;
@@ -63,14 +63,6 @@
 		this.overlayPaths = this.svg.append('g')
 			.classed('overlayPaths',true);
 
-		//Path event handlers
-		this.onPathMouseover = function(index) {
-			this.dispatch.call("mouseover",this,index,d3.event);
-		}
-		this.onPathClick = function(index) {
-			this.dispatch.call("click",this,index,d3.event);
-		}
-
 		this.redrawPaths();
 	}
 	//establish prototype chain
@@ -94,7 +86,6 @@
 
 	/**
 	 * Redraw the current selection of paths.
-	 * Actual implementation is up to specific subclasses
 	 */
 	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawSelectedPaths = function() {
 		var self = this;
@@ -123,7 +114,6 @@
 
 	/**
 	 * Redraw the currently highlighted path.
-	 * Actual implementation is up to specific subclasses
 	 */
 	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawHighlightedPaths = function() {
 		var self = this;
@@ -143,7 +133,6 @@
 
 	/**
 	 * Redraw the overlay paths.
-	 * Actual implementation is up to specific subclasses
 	 */
 	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawOverlayPaths = function() {
 		var self = this;
