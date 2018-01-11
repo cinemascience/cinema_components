@@ -84,8 +84,12 @@
 		 * Set handlers with on() function. Ex: this.dispatch.on('mouseover',handlerFunction(i))
 		 * 'mouseover': Triggered when selection of data changes.
 		 *     (called with the index of moused over data and a reference to the mouse event)
+		 * 'xchanged': Triggered when the x dimension being viewed is changed
+		 *     (called with the new dimension as an argument)
+		 * 'ychanged': Triggered when the y dimension being viewed is changed
+		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("mouseover");
+		this.dispatch = d3.dispatch("mouseover",'xchanged','ychanged');
 
 		/***************************************
 		 * SCALES
@@ -154,6 +158,7 @@
 				.range([0,self.internalWidth]);
 			self.xAxisContainer.select('.axis')
 				.call(d3.axisBottom().scale(self.x));
+			self.dispatch.call('xchanged',self,self.xDimension);
 			self.redrawPoints();
 		});
 		//y
@@ -164,6 +169,7 @@
 				.range([self.internalHeight,0]);
 			self.yAxisContainer.select('.axis')
 				.call(d3.axisLeft().scale(self.y));
+				self.dispatch.call('ychanged',self,self.yDimension);
 			self.redrawPoints();
 		});
 
@@ -246,7 +252,7 @@
 	CINEMA_COMPONENTS.ScatterPlot.prototype.redrawPoints = function() {
 		this.redrawSelectedPoints();
 		this.redrawHighlightedPoints();
-		//this.redrawOverlayPoints();
+		this.redrawOverlayPoints();
 	}
 
 	/**

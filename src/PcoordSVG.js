@@ -47,12 +47,10 @@
 		//Add SVG Components to pathContainer
 		this.svg = this.pathContainer.append('svg')
 			.style('position','absolute')
-			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
-							(this.parentRect.width)+' '+
-							(this.parentRect.height))
-			.attr('preserveAspectRatio','none')
-			.attr('width','100%')
-			.attr('height','100%');
+			.style('top',this.margin.top+'px')
+			.style('left',this.margin.left+'px')
+			.attr('width',this.internalWidth+'px')
+			.attr('height',this.internalHeight+'px');
 		//Add group for selected paths
 		this.selectedPaths = this.svg.append('g')
 			.classed('selectedPaths',true);
@@ -79,9 +77,8 @@
 
 		//rescale svg
 		this.svg
-			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
-							(this.parentRect.width)+' '+
-							(this.parentRect.height));
+			.attr('width',this.internalWidth+'px')
+			.attr('height',this.internalHeight+'px');
 	}
 
 	/**

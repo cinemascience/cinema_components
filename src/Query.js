@@ -113,7 +113,7 @@
 			.on('click',function() {
 				var results = self.db.getSimilar(self.custom.data,self.thresholdNode.value);
 				d3.select(self.readout).text(results.length+ " results found!");
-				self.dispatch.call('query',self,results);
+				self.dispatch.call('query',self,results.slice());
 			})
 			.node();
 

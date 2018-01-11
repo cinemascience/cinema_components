@@ -8,7 +8,7 @@ A javascript library containing prebuilt components for viewing and querying Cin
 ### PcoordSVG
 A component for viewing and browsing a database on a Parallel Coordinates Chart (rendered with SVG)
 ### PcoordCanvas
-(Coming Soon!)
+A component for viewing and browsing a database on a Parallel Coordinates Chart (rendered with Canvas)
 ### Glyph
 A component for viewing data on a Glyph Chart
 ### ImageSpread
@@ -18,7 +18,7 @@ A component that provides an interface for defining a custom data point and quer
 ### ScatterPlotSVG
 A component for viewing data on a Scatter plot (rendered with SVG)
 ### ScatterPlotCanvas
-(Coming Soon!)
+A component for viewing data on a Scatter plot (rendered with Canvas)
 
 ## Usage
 Below is a simple example of a webpage that uses a pcoordSVG component to control the display of an ImageSpread component
@@ -64,12 +64,16 @@ Please see example files for more information: **example_pcoord.html**,
 The **CinemaComponents.min.js** file can be built with whatever minify-ing tool you prefer, but please be aware of the following rules when building:
 * Database.js *must* be included before Component.js
 * Component.js *must* be included before Glyph.js, Pcoord.js, ImageSpread.js, Query.js and ScatterPlot.js
-* Pcoord.js *must* be included before PcoordSVG.js
-* ScatterPlot.js *must* be included before ScatterPlotSVG.js
+* Pcoord.js *must* be included before PcoordSVG.js and PcoordCanvas.js
+* ScatterPlot.js *must* be included before ScatterPlotSVG.js and ScatterPlotCanvas.js
 
 ## Full Documentation Coming Soon
 
 ## Changelog
+### Version 2.4
+- Added PcoordCanvas and ScatterPlotCanvas components
+- Databases now allow for axis_order.csv files to not specify every dimension
+- Added 'xchanged' and 'ychanged' events to ScatterPlot
 ### Version 2.3
 - Added ScatterPlotSVG Component
 - Databases now verfiy that there are at least two dimensions when error-checking

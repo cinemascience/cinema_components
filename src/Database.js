@@ -342,9 +342,9 @@
 			if (data[i].length != testLength)
 				return "Each line must have an equal number of comma separated values (columns).";
 
-		//Check that there are dimensions+2 columns (+2 for category and value columns)
+		/*//Check that there are dimensions+2 columns (+2 for category and value columns)
 		if (data[0].length !== dimensions.length+2)
-			return "All dimensions must be specified in the header of the file."
+			return "All dimensions must be specified in the header of the file."*/
 
 		//Check that each dimension in the header is valid
 		for (var i = 2; i < data[0].length; i++) {

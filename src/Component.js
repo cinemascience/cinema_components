@@ -117,8 +117,10 @@
 	 * Defines extra, custom data that may be shown on a component.
 	 * @param {Object} data - The data to show 
 	 *     (in the same format as the data points in the database)
-	 * @param {string} style - String representing how to draw the data.
+	 * @param {any} style - Object representing how to draw the data.
 	 *     (the interpretation of this is up to specific components)
+	 *     (for example PcoordSVG expects a CSS string and
+	 *     PcoordCanvas expects an object with canvas context attributes)
 	 */
 	CINEMA_COMPONENTS.ExtraData = function(data, style) {
 		this.data = data;

@@ -368,7 +368,7 @@
 		});
 		if (!arraysEqual(this.selection,newSelection)) {
 			this.selection = newSelection;
-			this.dispatch.call("selectionchange",this, this.selection);
+			this.dispatch.call("selectionchange",this, this.selection.slice());
 			this.redrawSelectedPaths();
 		}
 	}
@@ -423,10 +423,17 @@
 	 */
 	CINEMA_COMPONENTS.Pcoord.prototype.setAxisOrder = function(order) {
 		var self = this;
+		//filter out dimensions in order, but not in chart's dimensions
+		var order = order.filter(function(d) {
+			return self.dimensions.includes(d);
+		});
+		//Add any dimensions in chart's dimensions but not in order
+		this.dimensions.forEach(function(d) {
+			if (!order.includes[d])
+				order.push(d);
+		});
 		//update domain
-		this.x.domain(order.filter(function(d) {
-			return self.dimensions.includes(d); //filter out unused dimensions
-		}));
+		this.x.domain(order);
 		//update dimensions list
 		self.dimensions.sort(function(a,b){
 			return self.getXPosition(a)-self.getXPosition(b);

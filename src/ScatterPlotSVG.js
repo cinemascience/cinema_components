@@ -116,7 +116,7 @@
 	}
 
 	/**
-	 * Redraw the current selection of points
+	 * Redraw the set of highlighted points
 	 */
 	CINEMA_COMPONENTS.ScatterPlotSVG.prototype.redrawHighlightedPoints = function() {
 		var self = this;
