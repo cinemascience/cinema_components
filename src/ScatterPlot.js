@@ -82,7 +82,7 @@
 
 		/** @type {d3.dispatch} Hook for events on chart 
 		 * Set handlers with on() function. Ex: this.dispatch.on('mouseover',handlerFunction(i))
-		 * 'mouseover': Triggered when selection of data changes.
+		 * 'mouseover': Triggered when a point is moused over.
 		 *     (called with the index of moused over data and a reference to the mouse event)
 		 * 'xchanged': Triggered when the x dimension being viewed is changed
 		 *     (called with the new dimension as an argument)

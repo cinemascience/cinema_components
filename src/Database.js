@@ -137,13 +137,17 @@
 					if (callback)
 						callback(self);
 				},
-				//Error callback, if axis_order.csv not found
+				//Error callback, if axis_order.csv request fails
 				function() {
 					self.loaded = true;
 					if (callback)
 						callback(self);
 				}
 			);
+		//errorCallback. If data.csv request fails
+		}, function() {
+			if (errorCallback)
+				errorCallback("Error loading data.csv!");
 		});
 	
 	};
@@ -236,7 +240,10 @@
 		request.open("GET",path,true);
 		request.onreadystatechange = function() {
 			if (request.readyState === 4) {
-				if (request.status === 200) {
+				if (request.status === 200 || 
+						//Safari returns 0 on success (while other browsers use 0 for an error)
+						(navigator.userAgent.match(/Safari/) && request.status === 0)
+				) {
 					var data = parseCSV(request.responseText);
 					if (callback)
 						callback(data);
