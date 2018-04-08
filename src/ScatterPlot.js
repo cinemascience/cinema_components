@@ -3,13 +3,13 @@
 	/**
 	 * CINEMA_COMPONENTS
 	 * SCATTER_PLOT
-	 * 
+	 *
 	 * The ScatterPlot component for the CINEMA_COMPONENTS library.
 	 * Contains the constructor for ScatterPlot Components (Eg. ScatterPlotSVG, ScatterPlotCanvas)
 	 * It is a subclass of Component and contains methods and fields common to all ScatterPlot Components
-	 * 
+	 *
 	 * @exports CINEMA_COMPONENTS
-	 * 
+	 *
 	 * @author Cameron Tauxe
 	 */
 
@@ -80,7 +80,7 @@
 		 * EVENTS
 		 ***************************************/
 
-		/** @type {d3.dispatch} Hook for events on chart 
+		/** @type {d3.dispatch} Hook for events on chart
 		 * Set handlers with on() function. Ex: this.dispatch.on('mouseover',handlerFunction(i))
 		 * 'mouseover': Triggered when a point is moused over.
 		 *     (called with the index of moused over data and a reference to the mouse event)
@@ -98,10 +98,10 @@
 		/** @type {d3.scale} The scales for the x and y axes */
 		this.x = (this.db.isStringDimension(this.xDimension) ? d3.scalePoint() : d3.scaleLinear())
 			.domain(this.db.dimensionDomains[this.xDimension])
-			.range([0,this.internalWidth]);
+			.range([15,this.internalWidth-15]);
 		this.y = (this.db.isStringDimension(this.yDimension) ? d3.scalePoint() : d3.scaleLinear())
 		.domain(this.db.dimensionDomains[this.yDimension])
-		.range([this.internalHeight,0]);
+		.range([this.internalHeight-15,15]);
 
 		/***************************************
 		 * DOM Content
@@ -231,8 +231,8 @@
 			.style('height',this.internalHeight+'px');
 
 		//Rescale
-		this.x.range([0,this.internalWidth]);
-		this.y.range([this.internalHeight,0]);
+		this.x.range([15,this.internalWidth-15]);
+		this.y.range([this.internalHeight-15,15]);
 
 		//Reposition and rescale axes
 		this.xAxisContainer

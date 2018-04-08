@@ -3,7 +3,7 @@
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
-**To Do: Once this repository is on Github, update readme with pictures and better formatting because Teamforge has poor markdown support.**
+**This is the "layout_changes" branch. Goal is to fix some issues regarding the layout and sizing of components**
 
 **Requires D3v4**
 
