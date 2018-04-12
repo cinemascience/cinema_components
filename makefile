@@ -4,3 +4,6 @@ OUTPUT 	= CinmemaComponents.v$(VERSION).min.js
 
 minify:
 	cd src; minify $(FILES) --output ../$(OUTPUT)
+
+clean:
+	rm -f $(OUTPUT)
