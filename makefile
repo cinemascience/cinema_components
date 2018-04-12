@@ -3,4 +3,4 @@ VERSION = 2.4
 OUTPUT 	= CinmemaComponents.v$(VERSION).min.js
 
 minify:
-	cd src; minify $(FILES) --output ../build/$(OUTPUT)
+	cd src; minify $(FILES) --output ../$(OUTPUT)

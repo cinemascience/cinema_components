@@ -1,3 +1,4 @@
 .DS_Store
 deprecated/
 build.sh
+*.min.js
