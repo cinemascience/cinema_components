@@ -117,9 +117,9 @@ You will be using this field a lot as most components keep track of data by stor
 	]
 }
 ```
-###Methods
-**isStringDimension(dimension)** Returns a boolean representing whether the given dimension is a string-type or not.
-**getSimilar(query, threshold)** Get data rows (returned as an array of indices) that are similar to the given data (**query**). Difference between two data points is measured as the Manhattan distance where each dimension is normalized. i.e. The sum of the differencs on each dimension (each scaled from 0 to 1. On string dimensions, the distance is considered 0 if the strings are the same, otherwise 1 NaN values have 0 distance from each other, but 1 from anything else undefined values 0 distance from each other, but 1 from defined values. **query** Does not have to be a data point already in the database, but it must have the same dimensions as the database. **Threshold** is the value that the difference between **query** and data point must be to be considerd "similar."
+### Methods
+- **isStringDimension(dimension)** Returns a boolean representing whether the given dimension is a string-type or not.
+- **getSimilar(query, threshold)** Get data rows (returned as an array of indices) that are similar to the given data (**query**). Difference between two data points is measured as the Manhattan distance where each dimension is normalized. i.e. The sum of the differencs on each dimension (each scaled from 0 to 1. On string dimensions, the distance is considered 0 if the strings are the same, otherwise 1 NaN values have 0 distance from each other, but 1 from anything else undefined values 0 distance from each other, but 1 from defined values. **query** Does not have to be a data point already in the database, but it must have the same dimensions as the database. **Threshold** is the value that the difference between **query** and data point must be to be considerd "similar."
 
 ## Component
 All components in CinemaComponents are subclasses of Component. Component contains fields and methods common to all components (though some may be overridden). **Component.js** also contains definitions for some small classes that may be used by components such as **CINEMA\_COMPONENTS.ExtraData** and **CINEMA_COMPONENTS.Margin**
