@@ -43,7 +43,7 @@
 	 * (only called if loading finished without errors)
 	 * @param {function({string} message)} errorCallback - Function to call if errors were found with data
 	 */
-	CINEMA_COMPONENTS.Database = function(directory, callback, errorCallback) {
+	CINEMA_COMPONENTS.Database = function(directory, callback, errorCallback, monitorCallback) {
 		/** @type {string} - Path to the '.cdb' directory containing the database */
 		this.directory = directory;
 	
@@ -148,7 +148,37 @@
 		}, function() {
 			if (errorCallback)
 				errorCallback("Error loading data.csv!");
-		});
+		}, monitorCallback ? function(data_arr) {
+			//Convert rows from arrays to objects
+			var newData = data_arr.slice(1).map(function(d) {
+				var obj = {};
+				self.dimensions.forEach(function(p,i){obj[p] = d[i];});
+				return obj;
+			});
+
+			var updated = false;
+			var updateInfo = { added: [], modified: [], removed: [], oldData: self.data };
+			for (var f = 0; f < self.data.length || f < newData.length; f++) {
+				if (f >= self.data.length) {
+					updateInfo.added.push(f);
+					updated = true;
+				}
+				else if (f >= newData.length) {
+					updateInfo.removed.push(f);
+					updated = true;
+				}
+				else if (!(JSON.stringify(self.data[f]) === JSON.stringify(newData[f])) ) {
+					updateInfo.modified.push(f);
+					updated = true;
+				}
+			}
+
+			if (updated) {
+				self.data = newData;
+
+				monitorCallback(updateInfo);
+			}
+		} : null);
 	
 	};
 
@@ -235,7 +265,7 @@
 	}
 
 	//Fetch a csv file, parse data out of it. Return data with callback
-	var getAndParseCSV = function(path,callback,errorCallback) {
+	var getAndParseCSV = function(path,callback,errorCallback,monitorCallback) {
 		var request = new XMLHttpRequest();
 		request.open("GET",path,true);
 		request.onreadystatechange = function() {
@@ -247,6 +277,36 @@
 					var data = parseCSV(request.responseText);
 					if (callback)
 						callback(data);
+
+					var prevContentLength = request.getResponseHeader('Content-Length');	
+
+					if (monitorCallback) {
+						var interval = d3.interval(function(duration) {
+							var xhReq = new XMLHttpRequest();
+							xhReq.open("HEAD", path, true);
+							xhReq.onreadystatechange = function() {
+								if (xhReq.readyState === 4) {
+									if (xhReq.status === 200 || 
+											//Safari returns 0 on success (while other browsers use 0 for an error)
+											(navigator.userAgent.match(/Safari/) && xhReq.status === 0)
+									) {
+										
+										var contentLength = xhReq.getResponseHeader('Content-Length');
+										
+										console.log(prevContentLength, contentLength);
+										if (contentLength != prevContentLength) {
+											prevContentLength = contentLength;
+											getAndParseCSV(path, monitorCallback, errorCallback);
+										}
+									}
+								}
+							}
+							xhReq.send(null);
+						}, 5*1000);
+						var interval = d3.interval(function(duration) {
+							getAndParseCSV(path, monitorCallback, errorCallback);
+						}, 30*1000);
+					}
 				}
 				else if (errorCallback) {
 					errorCallback();
