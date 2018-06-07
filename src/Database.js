@@ -293,7 +293,6 @@
 										
 										var contentLength = xhReq.getResponseHeader('Content-Length');
 										
-										console.log(prevContentLength, contentLength);
 										if (contentLength != prevContentLength) {
 											prevContentLength = contentLength;
 											getAndParseCSV(path, monitorCallback, errorCallback);
