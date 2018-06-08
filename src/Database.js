@@ -67,6 +67,8 @@
 		/** @type {Object} Axis Ordering data (if it exists) */
 		this.axisOrderData;
 
+		this.dispatch = d3.dispatch("databaseUpdate");
+
 		var self = this;
 		getAndParseCSV(directory+'/data.csv', function(data_arr) {
 			//Check for errors
@@ -77,50 +79,7 @@
 				return;
 			}
 
-			//Get dimensions (First row of data)
-			self.dimensions = data_arr[0];
-			
-			//Convert rows from arrays to objects
-			self.data = data_arr.slice(1).map(function(d) {
-				var obj = {};
-				self.dimensions.forEach(function(p,i){obj[p] = d[i];});
-				return obj;
-			});
-
-			//Determine dimension types and calculate domains
-			self.dimensions.forEach(function(d) {
-				var val = self.data[0][d];
-				//Check if value is a float or integer
-				//The text "NaN" (not case sensitive) counts as a float
-				if (!isNaN(val) || val.toUpperCase() === "NAN") {
-					if (isNaN(val) || !Number.isInteger(val))
-						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
-					else
-						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
-					//calculate domain for numeric dimension
-					var i;//the first index to contain a value that is not "NaN"
-					for (i = 0; i < self.data.length && isNaN(self.data[i][d]); i++) {}
-					if (i == self.data.length)
-						//if all values are NaN, domain is [0,0]
-						self.dimensionDomains[d] = [0,0]
-					else {
-						var min = self.data[i][d];
-						var max = self.data[i][d];
-						for (var j = i; j < self.data.length; j++) {
-							if (!isNaN(self.data[j][d])) {
-								min = Math.min(min,self.data[j][d]);
-								max = Math.max(max,self.data[j][d]);
-							}
-						}
-						self.dimensionDomains[d] = [min,max];
-					}
-				}
-				//Anything else is a string type
-				else {
-					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
-					self.dimensionDomains[d] = self.data.map(function(p){return p[d];});
-				}
-			});
+			self.calcDimensions(self, data_arr);
 
 			//Attempt to load an axis_order.csv file
 			getAndParseCSV(directory+'/axis_order.csv',
@@ -157,7 +116,7 @@
 			});
 
 			var updated = false;
-			var updateInfo = { added: [], modified: [], removed: [], oldData: self.data };
+			var updateInfo = { added: [], modified: [], removed: [], oldData: self.data, oldDimensionDomains: self.dimensionDomains };
 			for (var f = 0; f < self.data.length || f < newData.length; f++) {
 				if (f >= self.data.length) {
 					updateInfo.added.push(f);
@@ -175,6 +134,10 @@
 
 			if (updated) {
 				self.data = newData;
+				self.dimensionDomains = {};
+				self.calcDimensions(self, data_arr);
+
+				self.dispatch.call("databaseUpdate",self, updateInfo);
 
 				monitorCallback(updateInfo);
 			}
@@ -188,6 +151,53 @@
 	 */
 	CINEMA_COMPONENTS.Database.prototype.isStringDimension = function(dimension) {
 		return this.dimensionTypes[dimension] === CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
+	};
+
+	CINEMA_COMPONENTS.Database.prototype.calcDimensions = function(self, data_arr) {
+		//Get dimensions (First row of data)
+		self.dimensions = data_arr[0];
+		
+		//Convert rows from arrays to objects
+		self.data = data_arr.slice(1).map(function(d) {
+			var obj = {};
+			self.dimensions.forEach(function(p,i){obj[p] = d[i];});
+			return obj;
+		});
+
+		//Determine dimension types and calculate domains
+		self.dimensions.forEach(function(d) {
+			var val = self.data[0][d];
+			//Check if value is a float or integer
+			//The text "NaN" (not case sensitive) counts as a float
+			if (!isNaN(val) || val.toUpperCase() === "NAN") {
+				if (isNaN(val) || !Number.isInteger(val))
+					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
+				else
+					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
+				//calculate domain for numeric dimension
+				var i;//the first index to contain a value that is not "NaN"
+				for (i = 0; i < self.data.length && isNaN(self.data[i][d]); i++) {}
+				if (i == self.data.length)
+					//if all values are NaN, domain is [0,0]
+					self.dimensionDomains[d] = [0,0]
+				else {
+					var min = self.data[i][d];
+					var max = self.data[i][d];
+					for (var j = i; j < self.data.length; j++) {
+						if (!isNaN(self.data[j][d])) {
+							min = Math.min(min,self.data[j][d]);
+							max = Math.max(max,self.data[j][d]);
+						}
+					}
+					self.dimensionDomains[d] = [min,max];
+				}
+			}
+			//Anything else is a string type
+			else {
+				self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
+				self.dimensionDomains[d] = self.data.map(function(p){return p[d];});
+			}
+		});
 	};
 
 	/**
