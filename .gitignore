@@ -2,3 +2,4 @@
 deprecated/
 build.sh
 *.min.js
+build
