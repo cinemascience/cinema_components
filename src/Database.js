@@ -167,9 +167,17 @@
 		//Determine dimension types and calculate domains
 		self.dimensions.forEach(function(d) {
 			var val = self.data[0][d];
+
+			for (i = 0; i < self.data.length; i++) {
+				if (self.data[i][d]) {
+					val = self.data[i][d];
+					break;
+				}
+			}
+
 			//Check if value is a float or integer
 			//The text "NaN" (not case sensitive) counts as a float
-			if (!isNaN(val) || val.toUpperCase() === "NAN") {
+			if (val && (!isNaN(val) || val.toUpperCase() === "NAN")) {
 				if (isNaN(val) || !Number.isInteger(val))
 					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
 				else
@@ -389,10 +397,8 @@
 		var emptyValFound = false;
 		for (var i in data[0])
 			emptyValFound = emptyValFound || (data[0][i] === undefined);
-		for (var i in data[1])
-			emptyValFound = emptyValFound || (data[1][i] === undefined);
 		if (emptyValFound)
-			return "Empty values may not occur in the header (first line) or first data row (second line).";
+			return "Empty values may not occur in the header (first line).";
 
 		//Check that all rows of data have the same length
 		var testLength = data[0].length;
