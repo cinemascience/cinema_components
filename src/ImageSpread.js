@@ -334,16 +334,16 @@
                                     d3.select(this).select('.display')
                                         .classed('image', true)
                                         .classed('text', false).append('img')
-                                        .attr('src', self.db.directory + '/' + f)
+                                        .attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
                                         .attr('width', '100%')
-                                        .on('click', self.createModalVTI);
+                                        .on('click', function() {self.createModalVTI(self.db.directory + '/' + f);});
                                 } else if (ext.toUpperCase() === 'PDB') {
                                     d3.select(this).select('.display')
                                         .classed('image', true)
                                         .classed('text', false).append('img')
-                                        .attr('src', self.db.directory + '/' + f)
+                                        .attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
                                         .attr('width', '100%')
-                                        .on('click', self.createModalPDB);
+                                        .on('click', function() {self.createModalPDB(self.db.directory + '/' + f);});
                                 } else {
                                     d3.select(this).select('.display')
                                         .classed('image', true)
@@ -390,7 +390,7 @@
      * An event handler for an image that will create a modal overlay
      * of the image when clicked
      */
-    CINEMA_COMPONENTS.ImageSpread.prototype.createModalVTI = function() {
+    CINEMA_COMPONENTS.ImageSpread.prototype.createModalVTI = function(url) {
         const rootContainer = d3.select('body');
         const backgroundContainer = d3.select('body').append('div');
         backgroundContainer.attr('class', 'modalBackground')
@@ -451,7 +451,7 @@
         stickMapper.setOrientationArray('orientation');
         stickActor.setMapper(stickMapper);
 
-        vtk.IO.Core.DataAccessHelper.get().fetchBinary(d3.select(this).attr('src'), {
+        vtk.IO.Core.DataAccessHelper.get().fetchBinary(url, {
             function(pe) {
                 console.log(pe);
             },
@@ -565,7 +565,7 @@
      * An event handler for an image that will create a modal overlay
      * of the image when clicked
      */
-    CINEMA_COMPONENTS.ImageSpread.prototype.createModalPDB = function() {
+    CINEMA_COMPONENTS.ImageSpread.prototype.createModalPDB = function(url) {
         const rootContainer = d3.select('body');
         const backgroundContainer = d3.select('body').append('div');
         backgroundContainer.attr('class', 'modalBackground')
@@ -624,7 +624,7 @@
         stickActor.setMapper(stickMapper);
 
         // reader.setUrl(`${__BASE_PATH__}/data/molecule/pdb/caffeine.pdb`).then(() => {
-        reader.setUrl(d3.select(this).attr('src')).then(() => {
+        reader.setUrl(url).then(() => {
             renderer.resetCamera();
             renderWindow.render();
         });
