@@ -76,8 +76,6 @@
 		/** @type {CINEMA_COMPONENTS.ExtraData[]} Custom data to overlay on chart */
 		this.overlayData = [];
 
-		database.dispatch.on('databaseUpdate', function(updateInfo) { self.onDatabaseUpdate(updateInfo); });
-
 		/***************************************
 		 * EVENTS
 		 ***************************************/
@@ -99,9 +97,34 @@
 		 * SCALES
 		 ***************************************/
 
-		this.x = d3.scalePoint();
+		/** @type {d3.scalePoint} - Scale for x axis on chart
+		 * Maps dimensions to position (in pixels) along width of chart.*/
+		this.x = d3.scalePoint()
+			.domain(this.dimensions)
+			.range([0,this.internalWidth])
+			.padding(1);;
+
+		/** @type {Object(d3.scale)} 
+		 * Scales for each dimension axis on the chart. One scale for each dimension */
 		this.y = {};
-		this.setScales();
+		this.dimensions.forEach(function (d) {
+			//Create point scale for string dimensions
+			if (self.db.isStringDimension(d)) {
+				if (!self.y[d]) {
+					self.y[d] = d3.scalePoint();
+				}
+				self.y[d].domain(self.db.dimensionDomains[d])
+					.range([self.internalHeight,0]);
+			}
+			//Create linear scale for numeric dimensions
+			else {
+				if (!self.y[d]) {
+					self.y[d] = d3.scaleLinear();
+				}
+				self.y[d].domain(self.db.dimensionDomains[d])
+					.range([self.internalHeight-self.NaNMargin,0]);
+			}
+		});
 
 		/***************************************
 		 * DRAGGING
@@ -123,8 +146,8 @@
 			});
 			if (!arraysEqual(oldDimensions,self.dimensions))
 				self.dispatch.call('axisorderchange',self,self.dimensions);
-				self.x.domain(self.dimensions);
-				self.axes.attr('transform',function(d) {
+			self.x.domain(self.dimensions);
+			self.axes.attr('transform',function(d) {
 				return "translate("+self.getXPosition(d)+")";
 			});
 		};
@@ -242,132 +265,6 @@
 	CINEMA_COMPONENTS.Pcoord.prototype = Object.create(CINEMA_COMPONENTS.Component.prototype);
 	CINEMA_COMPONENTS.Pcoord.prototype.constructor = CINEMA_COMPONENTS.Pcoord;
 
-	CINEMA_COMPONENTS.Pcoord.prototype.onDatabaseUpdate = function(updateInfo) {
-		var self = this;
-		this.results = this.db.data;
-
-		var oldDimensions = this.dimensions;
-
-		//Get filtered Dimensions according to filterRegex
-		this.dimensions = this.db.dimensions.filter(function(d) {
-			return self.filter ? !self.filter.test(d) : true;
-		});
-
-		this.setScales();
-
-		// Update axis container for new data
-		this.axisContainer.remove();
-		this.axisContainer = d3.select(this.container).append('svg')
-			.classed('axisContainer',true)
-			.style('position','absolute')
-			.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
-							(this.parentRect.width)+' '+
-							(this.parentRect.height))
-			.attr('preserveAspectRatio','none')
-			.attr('width','100%')
-			.attr('height','100%')
-			//disable pointer events on axisContainer so it doesn't block pathContainer
-			.style('pointer-events','none');
-		/** @type {d3.selction} Groups for each axis */
-		this.axes = this.axisContainer.selectAll('.axisGroup')
-			.data(this.dimensions)
-		.enter().append('g')
-			.classed('axisGroup',true)
-			.attr('transform', function(d) {
-				return "translate("+self.x(d)+")";
-			})
-			.call(this.drag)
-		//Add d3 axes to each axis group
-		this.axes.append('g')
-			.classed('axis',true)
-			.each(function(d) {
-				d3.select(this).call(d3.axisLeft().scale(self.y[d]));
-				if (!self.db.isStringDimension(d))
-					self.addNaNExtensionToAxis(this);
-			})
-		.append('text')
-			.classed('axisTitle',true)
-			//allow pointer-events on axisTitle so axes can be dragged
-			.style('pointer-events','initial')
-			.style('text-anchor','middle')
-			.attr('y',-9)
-			.text(function(d){return d;});
-		//Add brush group to each axis group
-		this.axes.append('g')
-			.classed('brush',true)
-			.each(function(){d3.select(this).call(self.brush);});
-
-		//updateInfo.oldDimensionDomains;
-
-		this.axes.each(function(d) {
-			d3.select(this).call(d3.axisLeft().scale(self.y[d]));
-			//if scale is linear, then update the NaN extension on the axis
-			if (!self.db.isStringDimension(d)) {
-				d3.select(this).select('path.NaNExtension')
-					.attr('d',"M0.5,"+String(self.internalHeight-self.NaNMargin+0.5)+"V"+String(self.internalHeight-0.5));
-				d3.select(this).select('.NaNExtensionTick')
-					.attr('transform',"translate(0,"+String(self.internalHeight-0.5)+")");
-			}
-		});
-
-		//Redraw brushes
-		this.dontUpdateSelectionOnBrush = true; //avoid updating selection when resizing brushes
-		this.brush.extent([[-8,0],[8,this.internalHeight]]);
-		this.axes.selectAll('g.brush').each(function(d) {
-			d3.select(this).call(self.brush);
-			d3.select(this).call(self.brush.move, function() {
-				if (self.brushExtents[d] == null)
-					return null;
-
-				return self.brushExtents[d].map(function(i, index) {
-					var percent = (i/self.internalHeight);
-					if (percent <= 0.9) {
-						var len = (updateInfo.oldDimensionDomains[d][1]-updateInfo.oldDimensionDomains[d][0]);
-						var val = ((1.0-percent/0.9))*len + updateInfo.oldDimensionDomains[d][0];
-						if (val < self.db.dimensionDomains[d][0]) { val = self.db.dimensionDomains[d][0]; }
-						if (val > self.db.dimensionDomains[d][1]) { val = self.db.dimensionDomains[d][1]; }
-						percent = ((1.0- (val - self.db.dimensionDomains[d][0])/(self.db.dimensionDomains[d][1]-self.db.dimensionDomains[d][0]))*0.9);
-					}
-					return percent * self.internalHeight;
-				});
-			});
-		});
-		this.dontUpdateSelectionOnBrush = false;
-
-		this.updateSelection();
-		this.redrawPaths();
-	}
-
-	CINEMA_COMPONENTS.Pcoord.prototype.setScales = function() {
-		var self = this;
-		/** @type {d3.scalePoint} - Scale for x axis on chart
-		 * Maps dimensions to position (in pixels) along width of chart.*/
-		this.x.domain(this.dimensions)
-			.range([0,this.internalWidth])
-			.padding(1);
-
-		/** @type {Object(d3.scale)} 
-		 * Scales for each dimension axis on the chart. One scale for each dimension */
-		this.dimensions.forEach(function (d) {
-			//Create point scale for string dimensions
-			if (self.db.isStringDimension(d)) {
-				if (!self.y[d]) {
-					self.y[d] = d3.scalePoint();
-				}
-				self.y[d].domain(self.db.dimensionDomains[d])
-					.range([self.internalHeight,0]);
-			}
-			//Create linear scale for numeric dimensions
-			else {
-				if (!self.y[d]) {
-					self.y[d] = d3.scaleLinear();
-				}
-				self.y[d].domain(self.db.dimensionDomains[d])
-					.range([self.internalHeight-self.NaNMargin,0]);
-			}
-		});
-	}
-
 	/**
 	 * Add an additional line segment and tick to the end of an axis to represent the area
 	 * for NaN values.
@@ -456,7 +353,10 @@
 	/**
 	 * Called whenever a brush changes the selection
 	 * Updates selection to hold the indices of all data points that are
-	 * selected by the brushes
+	 * selected by the brushes.
+	 * @param {bool} force - If true, selectionchange event will be triggered
+	 * 	and paths will be redrawn even if the set the of selected points did
+	 * 	not change.
 	 */
 	CINEMA_COMPONENTS.Pcoord.prototype.updateSelection = function(force) {
 		var self = this;
@@ -553,11 +453,6 @@
 		});
 		//redraw
 		this.redrawPaths();
-	}
-
-	CINEMA_COMPONENTS.Pcoord.prototype.redrawSelectedPaths = function() {
-		throw new Error("Cannot call abstract function 'redrawSelectedPaths()'!"+
-			" Please override function in a subclass");
 	}
 
 	/**

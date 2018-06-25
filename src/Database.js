@@ -43,7 +43,7 @@
 	 * (only called if loading finished without errors)
 	 * @param {function({string} message)} errorCallback - Function to call if errors were found with data
 	 */
-	CINEMA_COMPONENTS.Database = function(directory, callback, errorCallback, monitorCallback) {
+	CINEMA_COMPONENTS.Database = function(directory, callback, errorCallback) {
 		/** @type {string} - Path to the '.cdb' directory containing the database */
 		this.directory = directory;
 	
@@ -67,8 +67,6 @@
 		/** @type {Object} Axis Ordering data (if it exists) */
 		this.axisOrderData;
 
-		this.dispatch = d3.dispatch("databaseUpdate");
-
 		var self = this;
 		getAndParseCSV(directory+'/data.csv', function(data_arr) {
 			//Check for errors
@@ -79,7 +77,58 @@
 				return;
 			}
 
-			self.calcDimensions(self, data_arr);
+			//Get dimensions (First row of data)
+			self.dimensions = data_arr[0];
+			
+			//Convert rows from arrays to objects
+			self.data = data_arr.slice(1).map(function(d) {
+				var obj = {};
+				self.dimensions.forEach(function(p,i){obj[p] = d[i];});
+				return obj;
+			});
+
+			//Determine dimension types and calculate domains
+			self.dimensions.forEach(function(d) {
+				var val = self.data[0][d];
+
+				for (i = 0; i < self.data.length; i++) {
+					if (self.data[i][d]) {
+						val = self.data[i][d];
+						break;
+					}
+				}
+
+				//Check if value is a float or integer
+				//The text "NaN" (not case sensitive) counts as a float
+				if (val && (!isNaN(val) || val.toUpperCase() === "NAN")) {
+					if (isNaN(val) || !Number.isInteger(val))
+						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
+					else
+						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
+					//calculate domain for numeric dimension
+					var i;//the first index to contain a value that is not "NaN"
+					for (i = 0; i < self.data.length && isNaN(self.data[i][d]); i++) {}
+					if (i == self.data.length)
+						//if all values are NaN, domain is [0,0]
+						self.dimensionDomains[d] = [0,0]
+					else {
+						var min = self.data[i][d];
+						var max = self.data[i][d];
+						for (var j = i; j < self.data.length; j++) {
+							if (!isNaN(self.data[j][d])) {
+								min = Math.min(min,self.data[j][d]);
+								max = Math.max(max,self.data[j][d]);
+							}
+						}
+						self.dimensionDomains[d] = [min,max];
+					}
+				}
+				//Anything else is a string type
+				else {
+					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
+					self.dimensionDomains[d] = self.data.map(function(p){return p[d];});
+				}
+			});//end dimensions.foreach()
 
 			//Attempt to load an axis_order.csv file
 			getAndParseCSV(directory+'/axis_order.csv',
@@ -107,43 +156,8 @@
 		}, function() {
 			if (errorCallback)
 				errorCallback("Error loading data.csv!");
-		}, monitorCallback ? function(data_arr) {
-			//Convert rows from arrays to objects
-			var newData = data_arr.slice(1).map(function(d) {
-				var obj = {};
-				self.dimensions.forEach(function(p,i){obj[p] = d[i];});
-				return obj;
-			});
-
-			var updated = false;
-			var updateInfo = { added: [], modified: [], removed: [], oldData: self.data, oldDimensionDomains: self.dimensionDomains };
-			for (var f = 0; f < self.data.length || f < newData.length; f++) {
-				if (f >= self.data.length) {
-					updateInfo.added.push(f);
-					updated = true;
-				}
-				else if (f >= newData.length) {
-					updateInfo.removed.push(f);
-					updated = true;
-				}
-				else if (!(JSON.stringify(self.data[f]) === JSON.stringify(newData[f])) ) {
-					updateInfo.modified.push(f);
-					updated = true;
-				}
-			}
-
-			if (updated) {
-				self.data = newData;
-				self.dimensionDomains = {};
-				self.calcDimensions(self, data_arr);
-
-				self.dispatch.call("databaseUpdate",self, updateInfo);
-
-				monitorCallback(updateInfo);
-			}
-		} : null);
-	
-	};
+		}); //end getAndParseCSV()
+	}; //end constructor
 
 	/**
 	 * Shortcut function to check if a given dimension is of type string or not
@@ -151,61 +165,6 @@
 	 */
 	CINEMA_COMPONENTS.Database.prototype.isStringDimension = function(dimension) {
 		return this.dimensionTypes[dimension] === CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
-	};
-
-	CINEMA_COMPONENTS.Database.prototype.calcDimensions = function(self, data_arr) {
-		//Get dimensions (First row of data)
-		self.dimensions = data_arr[0];
-		
-		//Convert rows from arrays to objects
-		self.data = data_arr.slice(1).map(function(d) {
-			var obj = {};
-			self.dimensions.forEach(function(p,i){obj[p] = d[i];});
-			return obj;
-		});
-
-		//Determine dimension types and calculate domains
-		self.dimensions.forEach(function(d) {
-			var val = self.data[0][d];
-
-			for (i = 0; i < self.data.length; i++) {
-				if (self.data[i][d]) {
-					val = self.data[i][d];
-					break;
-				}
-			}
-
-			//Check if value is a float or integer
-			//The text "NaN" (not case sensitive) counts as a float
-			if (val && (!isNaN(val) || val.toUpperCase() === "NAN")) {
-				if (isNaN(val) || !Number.isInteger(val))
-					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
-				else
-					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
-				//calculate domain for numeric dimension
-				var i;//the first index to contain a value that is not "NaN"
-				for (i = 0; i < self.data.length && isNaN(self.data[i][d]); i++) {}
-				if (i == self.data.length)
-					//if all values are NaN, domain is [0,0]
-					self.dimensionDomains[d] = [0,0]
-				else {
-					var min = self.data[i][d];
-					var max = self.data[i][d];
-					for (var j = i; j < self.data.length; j++) {
-						if (!isNaN(self.data[j][d])) {
-							min = Math.min(min,self.data[j][d]);
-							max = Math.max(max,self.data[j][d]);
-						}
-					}
-					self.dimensionDomains[d] = [min,max];
-				}
-			}
-			//Anything else is a string type
-			else {
-				self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
-				self.dimensionDomains[d] = self.data.map(function(p){return p[d];});
-			}
-		});
 	};
 
 	/**
@@ -283,7 +242,7 @@
 	}
 
 	//Fetch a csv file, parse data out of it. Return data with callback
-	var getAndParseCSV = function(path,callback,errorCallback,monitorCallback) {
+	var getAndParseCSV = function(path,callback,errorCallback) {
 		var request = new XMLHttpRequest();
 		request.open("GET",path,true);
 		request.onreadystatechange = function() {
@@ -295,35 +254,6 @@
 					var data = parseCSV(request.responseText);
 					if (callback)
 						callback(data);
-
-					var prevContentLength = request.getResponseHeader('Content-Length');	
-
-					if (monitorCallback) {
-						var interval = d3.interval(function(duration) {
-							var xhReq = new XMLHttpRequest();
-							xhReq.open("HEAD", path, true);
-							xhReq.onreadystatechange = function() {
-								if (xhReq.readyState === 4) {
-									if (xhReq.status === 200 || 
-											//Safari returns 0 on success (while other browsers use 0 for an error)
-											(navigator.userAgent.match(/Safari/) && xhReq.status === 0)
-									) {
-										
-										var contentLength = xhReq.getResponseHeader('Content-Length');
-										
-										if (contentLength != prevContentLength) {
-											prevContentLength = contentLength;
-											getAndParseCSV(path, monitorCallback, errorCallback);
-										}
-									}
-								}
-							}
-							xhReq.send(null);
-						}, 5*1000);
-						var interval = d3.interval(function(duration) {
-							getAndParseCSV(path, monitorCallback, errorCallback);
-						}, 30*1000);
-					}
 				}
 				else if (errorCallback) {
 					errorCallback();
