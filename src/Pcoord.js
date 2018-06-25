@@ -136,6 +136,12 @@
 		//Drag event handlers
 		this.axisDragStart = function(d) {
 			self.dragging[d] = self.x(d);
+			//Reorder axes such that the one being dragged is on top
+			self.axes.sort(function(a,b) {
+				if (a == d) return 1;
+				if (b == d) return -1;
+				return 0;
+			});
 		};
 		this.axisDrag = function(d) {
 			self.dragging[d] = Math.min(self.internalWidth,Math.max(0,d3.event.x));
@@ -154,6 +160,10 @@
 		this.axisDragEnd = function(d) {
 			delete self.dragging[d];
 			d3.select(this).attr('transform',"translate("+self.x(d)+")");
+			//Reorder axes in DOM
+			self.axes.sort(function(a,b){
+				return self.x(a) - self.x(b);
+			});
 			self.redrawPaths();
 		};
 
@@ -247,14 +257,31 @@
 				d3.select(this).call(d3.axisLeft().scale(self.y[d]));
 				if (!self.db.isStringDimension(d))
 					self.addNaNExtensionToAxis(this);
-			})
-		.append('text')
-			.classed('axisTitle',true)
-			//allow pointer-events on axisTitle so axes can be dragged
+			});
+		var labels = this.axes.append('g')
+			.classed('axisLabel',true)
+			//allow pointer-events on axisLabel so axes can be dragged
 			.style('pointer-events','initial')
+		//add text to each label
+		labels.append('text')
 			.style('text-anchor','middle')
 			.attr('y',-9)
 			.text(function(d){return d;});
+		//prepend background rectangle to each label
+		labels.insert('rect',':first-child')
+			//each background is bound to their corresponding text's
+			//bounding box as data
+			.data(function() {
+				var boxes = [];
+				labels.selectAll('text').each(function(){
+					boxes.push(this.getBBox());
+				});
+				return boxes;
+			})
+			.attr('x',function(d){return d.x + 3;})
+			.attr('y',function(d){return d.y;})
+			.attr('width',function(d){return d.width - 6;})
+			.attr('height',function(d){return d.height;});
 		//Add brush group to each axis group
 		this.axes.append('g')
 			.classed('brush',true)
@@ -450,6 +477,10 @@
 		//update axes
 		this.axes.attr('transform',function(d) {
 			return "translate("+self.getXPosition(d)+")";
+		});
+		//Reorder axes in DOM
+		self.axes.sort(function(a,b){
+			return self.x(a) - self.x(b);
 		});
 		//redraw
 		this.redrawPaths();
