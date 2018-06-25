@@ -8,6 +8,10 @@ full:
 	cp build/$(OUTPUT_PREFIX).js build/$(OUTPUT_PREFIX).min.js
 	cat css/*.css > build/$(OUTPUT_PREFIX).min.css
 
+deploy/examples: full
+	cp build/$(OUTPUT_PREFIX).js examples/lib/CinemaComponents.js
+	cp build/$(OUTPUT_PREFIX).min.css examples/css/CinemaComponents.min.css
+
 minify: full
 	mkdir -p build
 	cat build/$(OUTPUT_PREFIX).js | babel-minify > build/$(OUTPUT_PREFIX).min.js
