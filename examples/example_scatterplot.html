@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!--
+A demonstration of some basic usage of the ScatterPlotCanvas component
+
+Copyright 2017 Los Alamos National Laboratory
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+This is based on the example of the Nutrient Explorer, copyright 2012, Kai
+Chang, and is licensed appropriately.
+-->
+
+<html lang='en'>
+<head>
+	<title>Scatter Plot Example (Cars)</title>
+	<meta charset="utf-8">
+	<meta name='author' content="Cameron Tauxe">
+	<link rel='stylesheet' href='css/example_scatterplot.css'>
+	<!--Import d3-->
+	<script src="lib/d3.min.js"></script>
+	<!--Import library-->
+	<script src = 'lib/CinemaComponents.js'></script>
+	<!--Include Component's CSS-->
+	<link rel='stylesheet' href='css/CinemaComponents.min.css'>
+</head>
+<body>
+	<div id="header">
+		<h1>Scatter Plot Example (Cars)</h1>
+	</div>
+	<!--The component will be placed into componentContainer.
+		It will try to match its container's size exactly
+		so if you want padding and margins and such,
+		it is advisable to wrap the container (inside componentArea in this case)-->
+	<div id="componentArea">
+		<div id="componentContainer"></div>
+	</div>
+
+	<script>
+		var chart;
+
+		//Create Database
+		var db = new CINEMA_COMPONENTS.Database('data/cars.cdb',doneLoading);
+		var loaded = false;
+
+		/**
+		* Loading callback function.
+		* Called when the database is done loading.
+		*/
+		function doneLoading() {
+			loaded = true;
+
+			//Create chart from database
+			// /^name$/ is a regex filtering out the name dimension of the data so that it doesn't show on the chart
+			chart = new CINEMA_COMPONENTS.ScatterPlotCanvas(
+				d3.select('#componentContainer').node(),//container
+				db,//database
+				/^name$/); //filter regex
+
+			//Set the selection of the chart to cover all the data in the database
+			chart.setSelection(d3.range(0,db.data.length));
+
+			//Set up event listener to highlight points when
+			//they are moused over
+			chart.dispatch.on('mouseover',function(index) {
+				if (index == null)
+					chart.setHighlightedPoints([]);
+				else
+					chart.setHighlightedPoints([index]);
+			})
+		} //end doneLoading()
+
+		/**
+		 * It is important to call updateSize() whenever the size of the
+		 * chart's container may change. If you dont, the chart will still
+		 * fit the area, but it will become distorted
+		 */
+		window.onresize = function(){
+			if (loaded)
+				chart.updateSize();
+		};
+	</script>
+</body>
