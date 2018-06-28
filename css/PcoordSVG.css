@@ -47,7 +47,11 @@
 	shape-rendering: crispEdges;
 }
 
-.CINEMA_COMPONENT.PCOORD.SVG .axis text {
+.CINEMA_COMPONENT.PCOORD.SVG .axisLabel rect {
+	fill: whitesmoke;
+}
+
+.CINEMA_COMPONENT.PCOORD.SVG .axisLabel text {
 	fill: black;
 	cursor: move;
 }

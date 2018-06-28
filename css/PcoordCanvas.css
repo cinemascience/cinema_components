@@ -11,7 +11,11 @@ CINEMA_COMPONENT.PCOORD.CANVAS .brush .extent {
 	shape-rendering: crispEdges;
 }
 
-.CINEMA_COMPONENT.PCOORD.CANVAS .axis text {
+.CINEMA_COMPONENT.PCOORD.CANVAS .axisLabel rect {
+	fill: whitesmoke;
+}
+
+.CINEMA_COMPONENT.PCOORD.CANVAS .axisLabel text {
 	fill: black;
 	cursor: move;
 }
