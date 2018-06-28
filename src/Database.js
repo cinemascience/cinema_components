@@ -89,18 +89,16 @@
 
 			//Determine dimension types and calculate domains
 			self.dimensions.forEach(function(d) {
+				//The value used to determine the dimension type
+				//is the first defined value in the column
 				var val = self.data[0][d];
-
-				for (i = 0; i < self.data.length; i++) {
-					if (self.data[i][d]) {
-						val = self.data[i][d];
-						break;
-					}
-				}
+				var i = 0;
+				while (val === undefined && i < self.data.length)
+					val = self.data[++i];
 
 				//Check if value is a float or integer
 				//The text "NaN" (not case sensitive) counts as a float
-				if (val && (!isNaN(val) || val.toUpperCase() === "NAN")) {
+				if (!isNaN(val) || val.toUpperCase() === "NAN") {
 					if (isNaN(val) || !Number.isInteger(val))
 						self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
 					else
@@ -262,7 +260,7 @@
 		}
 		request.send(null);
 	}
-	
+
 	//Get a value from 0 to 1 reprsenting where val lies between min and max
 	var getNormalizedValue = function(val, min, max) {
 		return (max-min == 0) ? 0 : ((val-min) / (max-min));
@@ -323,7 +321,7 @@
 		if (data[0].length < 2)
 			return "The dataset must include at least two dimensions";
 
-		//Check that there are no empty values in the first two rows
+		//Check that there are no empty values in the first row
 		var emptyValFound = false;
 		for (var i in data[0])
 			emptyValFound = emptyValFound || (data[0][i] === undefined);
@@ -335,6 +333,15 @@
 		for (var i in data)
 			if (data[i].length != testLength)
 				return "Each line must have an equal number of comma separated values (columns).";
+
+		//Check that no colummns have all undefined values
+		for (var i = 0; i < data[0].length; i++) {
+			var allEmpty = true;
+			for (var j = 0; j < data.length; j++)
+				allEmpty = allEmpty && (data[j][i] === undefined);
+			if (allEmpty)
+				return "There cannot be any columns with all undefined values.";
+		}
 	}
 
 	/**

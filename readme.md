@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.4.2
+## Version 2.4.3
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
@@ -273,6 +273,8 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
 # Changelog
+### Version 2.4.3
+- Fixed incorrect verification of databases in version 1.2 of the Spec.
 ### Version 2.4.2
 - Text on the labels in Parallel Coordinates component no longer overlaps when there is not enough space. If a label has been cut-off, drag it to see the full name.
 - In Scatter Plot component, points on the edges are no longer cut-off.
