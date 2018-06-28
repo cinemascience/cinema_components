@@ -31,10 +31,9 @@ Below is a simple example of a webpage that uses a pcoordSVG component to contro
 	<!--Import D3-->
 	<script src="lib/d3.min.js"></script>
 	<!--Import Cinema Components Library-->
-	<script src="CinemaComponents.min.js"></script>
+	<script src="CinemaComponents.js"></script>
 	<!--Include Component's CSS-->
-	<link rel='stylesheet' href='css/PcoordSVG.css'>
-	<link rel='stylesheet' href='css/ImageSpread.css'>
+	<link rel='stylesheet' href='css/CinemaComponents.min.css'>
 </head>
 <body>
 	<!--The component will be placed inside container-->
@@ -61,11 +60,11 @@ Below is a simple example of a webpage that uses a pcoordSVG component to contro
 
 # How to Build
 
-The **CinemaComponents.min.js** file can be built with whatever minify-ing tool you prefer, but please be aware of the following rules when building:
-* Database.js *must* be included before Component.js
-* Component.js *must* be included before Glyph.js, Pcoord.js, ImageSpread.js, Query.js and ScatterPlot.js
-* Pcoord.js *must* be included before PcoordSVG.js and PcoordCanvas.js
-* ScatterPlot.js *must* be included before ScatterPlotSVG.js and ScatterPlotCanvas.js
+The provided makefile will combine all the cinema components source files into a single file. Be aware of the following targets available:
+- **full**: Concatenate all the javascript and css files together into build/CinemaComponents.v{version}.js and build/CinemaComponents.v{version}.min.css
+- **deploy/examples**: Do 'full' and copy files to the examples directory to update examples.
+- **minify**: Do 'full' and the minify the javascript. Requires the babel-minify node.js module.
+- **clean**: Remove the build directory
 
 # Documentation
 
@@ -141,8 +140,8 @@ These fields are common to all components.
 - **dispatch (d3.dispatch)** Any components that use dispatch events will send them from this.
 ### Methods
 These methods are common to all components
-**updateSize()** Updates the size of the component to fit inside its parent. This should be called on *all* components whenever their parent changes size. Note that the component will fill the size of its parent exactly (disregarding padding and margins and such).
-**destroy()** Remove this component from the scene. This is preferable to simply removing the component directly as some subclasses may need to perform cleanup.
+* **updateSize()** Updates the size of the component to fit inside its parent. This should be called on *all* components whenever their parent changes size. Note that the component will fill the size of its parent exactly (disregarding padding and margins and such).
+* **destroy()** Remove this component from the scene. This is preferable to simply removing the component directly as some subclasses may need to perform cleanup.
 
 ## Glyph
 Glyph is a type of component for viewing one data point at a time in a glyph chart.
@@ -174,7 +173,7 @@ Data shown on the chart can be filtered by click-and-dragging along an axis. Thi
 - **'click'** Triggered when a path is clicked on. Called with the index of the data point and the corresponding mouse event as arguments.
 - **'axisorderchange'** Triggered when the axis ordering is manually changed. Called with the list of dimensions in the new order as an argument.
 ### Structure
-Inside the container is a div classed '.pathContainer' and an SVG element classed '.axisContainer'. The contents of pathContainer depend on the particular subclass (SVG or Canvas) of Pcoord. Inside axisContainer are groups for each dimension classed '.axisGroup'. Inside each axisGroup is a group classed '.axis' where d3 builds the axis and a text element classed '.axisTitle' which has the name of the dimension. Each 'axis' group also contains a path, line and text element all classed '.NaNExtension' which represent the area just below the axis for NaN values.
+Inside the container is a div classed '.pathContainer' and an SVG element classed '.axisContainer'. The contents of pathContainer depend on the particular subclass (SVG or Canvas) of Pcoord. Inside axisContainer are groups for each dimension classed '.axisGroup'. Inside each axisGroup is a group classed '.axis' where d3 builds the axis and another group element classed '.axisLabel' which has the name of the dimension. Each 'axis' group also contains a path, line and text element all classed '.NaNExtension' which represent the area just below the axis for NaN values.
 ### Fields
 - **selection (number[])** The indices of all the currently selected data. Please do not edit this directly and use the **setSelection(number[])** function instead. Otherwise there may be a discrepancy between the selection made on the axes and the data being shown.
 - **highlighted (number[])** The indices of all currently highlighted data. Please do not edit this directly and use the **setHighlighted(number[])** function instead.
