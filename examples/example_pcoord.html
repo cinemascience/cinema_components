@@ -79,6 +79,8 @@ Chang, and is licensed appropriately.
 		//Create Database
 		var db = new CINEMA_COMPONENTS.Database('data/cars.cdb',doneLoading);
 		var loaded = false;
+		var refreshBySizeInterval = false;
+		var refreshAllInterval = false;
 
 		/**
 		 * Loading callback function.
@@ -86,6 +88,15 @@ Chang, and is licensed appropriately.
 		 */
 		function doneLoading() {
 			loaded = true;
+
+			db.dispatch.on('dataUpdated', onDataUpdated);
+
+			refreshBySizeInterval = d3.interval(function(duration) {
+				db.refreshData(false);
+			}, 5*1000);
+			refreshAllInterval = d3.interval(function(duration) {
+				db.refreshData(true);
+			}, 30*1000);
 
 			//Create chart from database
 			// /^name$/ is a regex filtering out the name dimension of the data so that it doesn't show on the chart
@@ -151,6 +162,7 @@ Chang, and is licensed appropriately.
 
 		} //end doneLoading()
 
+
 		/**
 		 * It is important to call updateSize() whenever the size of the
 		 * chart's container may change. If you dont, the chart will still
@@ -175,6 +187,13 @@ Chang, and is licensed appropriately.
 				d3.select(this).attr('mode', 'default');
 			});
 		d3.select('#resizeBar').call(resizeDrag);
+
+
+
+
+		function onDataUpdated(updateInfo) {
+			console.log(updateInfo);
+		}
 
 		/**
 		 * Creates a viewport inside the given parent for the result represented
