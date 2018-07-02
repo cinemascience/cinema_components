@@ -89,8 +89,11 @@ Chang, and is licensed appropriately.
 		function doneLoading() {
 			loaded = true;
 
+			//Monitor database for data updates
 			db.dispatch.on('dataUpdated', onDataUpdated);
 
+			// Create two intervals.  Every 5 seconds we see if the file size has changed
+			// and every 30 seconds, we load the full data to see if anything has changed.
 			refreshBySizeInterval = d3.interval(function(duration) {
 				db.refreshData(false);
 			}, 5*1000);
@@ -190,7 +193,10 @@ Chang, and is licensed appropriately.
 
 
 
-
+		/**
+		 * Montiors the database for updates.  When the database values change,
+		 * the onDataUpdated method is called with what has changed.
+		 */
 		function onDataUpdated(updateInfo) {
 			console.log(updateInfo);
 		}
