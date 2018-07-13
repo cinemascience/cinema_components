@@ -192,6 +192,18 @@
 	CINEMA_COMPONENTS.Query.prototype.constructor = CINEMA_COMPONENTS.Query;
 
 	/**
+	 * Should be called whenever the data in the associated database changes.
+	 * Will update scales to fit the new data.
+	 */
+	CINEMA_COMPONENTS.Query.prototype.updateData = function() {
+		var self = this;
+
+		this.dimensions.forEach(function(d) {
+			self.scales[d].range(self.db.dimensionDomains[d]);
+		})
+	}
+
+	/**
 	 * Update upper and lower data depending on custom data and current threshold value
 	 */
 	CINEMA_COMPONENTS.Query.prototype.updateBounds = function() {

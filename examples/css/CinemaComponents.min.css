@@ -94,6 +94,12 @@
 	display: block;
 }
 
+.modalViewer {
+    margin: auto;
+    width: 50%;
+    height: 80%;
+}
+
 .CINEMA_COMPONENT.IMAGE_SPREAD .pageNavWrapper {
 	padding: initial;
 	z-index: 2;
@@ -154,7 +160,8 @@
 	font-weight: bold;
 	font-size: 24px;
 
-}CINEMA_COMPONENT.PCOORD.CANVAS .brush .extent {
+}
+CINEMA_COMPONENT.PCOORD.CANVAS .brush .extent {
 	fill-opacity: .3;
 	stroke: #fff;
 	shape-rendering: crispEdges;

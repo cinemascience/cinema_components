@@ -245,6 +245,26 @@
 	};
 
 	/**
+	 * Should be called whenever the data in the associated database changes.
+	 * Will update scales, axes and selection to fit the new data.
+	 */
+	CINEMA_COMPONENTS.Glyph.prototype.updateData = function() {
+		var self = this;
+
+		//Update scale domains
+		this.dimensions.forEach(function (d) {
+			self.scales[d].domain(self.db.dimensionDomains[d]);
+		});
+
+		//Rebuild axes
+		this.axes.each(function(d) {
+			d3.select(this).call(d3.axisLeft().scale(self.scales[d]));
+		});
+
+		this.redraw();
+	}
+
+	/**
 	 * Set the selected data point to the one with the given index
 	 */
 	CINEMA_COMPONENTS.Glyph.prototype.setSelected = function(index) {

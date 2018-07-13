@@ -378,6 +378,26 @@
 	}
 
 	/**
+	 * Should be called whenever the data in the associated database changes.
+	 * Will update scales, axes and selection to fit the new data.
+	 */
+	CINEMA_COMPONENTS.Pcoord.prototype.updateData = function() {
+		var self = this;
+
+		//Update scale domains
+		this.dimensions.forEach(function(d){
+			self.y[d].domain(self.db.dimensionDomains[d]);
+		});
+
+		//Rebuild axes
+		this.axes.each(function(d) {
+			d3.select(this).call(d3.axisLeft().scale(self.y[d]));
+		});
+
+		this.updateSelection(true);
+	}
+
+	/**
 	 * Called whenever a brush changes the selection
 	 * Updates selection to hold the indices of all data points that are
 	 * selected by the brushes.

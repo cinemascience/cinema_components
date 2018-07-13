@@ -272,7 +272,7 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **createModalImg()** An event handler for img element that will create a modal overlay of the image when it is clicked.
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
-# Changelog
+# Changelog 
 ### Version 2.4.3
 - Fixed incorrect verification of databases in version 1.2 of the Spec.
 ### Version 2.4.2
@@ -296,7 +296,3 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - Added destroy() function to Component
 ### Version 2.0
 - First release of this major rewrite
-
-# To Do
-
-- Rewrite examples.

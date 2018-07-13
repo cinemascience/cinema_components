@@ -248,6 +248,25 @@
 		this.redrawPoints();
 	}
 
+	/**
+	 * Should be called whenever the data in the associated database changes.
+	 * Will update scales, axes and selection to fit the new data.
+	 */
+	CINEMA_COMPONENTS.ScatterPlot.prototype.updateData = function() {
+
+		//Update scale domains
+		this.x.domain(this.db.dimensionDomains[this.xDimension]);
+		this.y.domain(this.db.dimensionDomains[this.yDimension]);
+
+		//Rebuild axes
+		this.xAxisContainer.select('.axis')
+			.call(d3.axisBottom().scale(this.x));
+		this.yAxisContainer.select('.axis')
+			.call(d3.axisLeft().scale(this.y));
+
+		this.redrawPoints();
+	}
+
 	//Shortcut function for redrawSelectedPoints, redrawHighlightedPoints and redrawOverlayPoints
 	CINEMA_COMPONENTS.ScatterPlot.prototype.redrawPoints = function() {
 		this.redrawSelectedPoints();
