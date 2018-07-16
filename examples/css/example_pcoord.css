@@ -80,7 +80,8 @@ body {
 }
 
 #selection,
-#mousedOver {
+#mousedOver,
+#refreshData {
 	margin: 10px 50px;
 	background-color: rgb(124, 196, 233);
 	padding: 10px;

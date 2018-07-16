@@ -84,7 +84,7 @@
 				return;
 			}
 
-			self.calcDimensions(self, data_arr);
+			calcDimensions(self, data_arr);
 
 			//Attempt to load an axis_order.csv file
 			getAndParseCSV(directory+'/axis_order.csv',
@@ -128,7 +128,7 @@
 	 * @param {object} self - The database object
 	 * @param {string} data_arr - The array of data
 	 */
-	CINEMA_COMPONENTS.Database.prototype.calcDimensions = function(self, data_arr) {
+	var calcDimensions = function(self, data_arr) {
 		//Get dimensions (First row of data)
 		self.dimensions = data_arr[0];
 		
@@ -141,18 +141,16 @@
 
 		//Determine dimension types and calculate domains
 		self.dimensions.forEach(function(d) {
+			//The value used to determine the dimension type
+			//is the first defined value in the column
 			var val = self.data[0][d];
-
-			for (i = 0; i < self.data.length; i++) {
-				if (self.data[i][d]) {
-					val = self.data[i][d];
-					break;
-				}
-			}
+			var i = 0;
+			while (val === undefined && i < self.data.length)
+				val = self.data[++i];
 
 			//Check if value is a float or integer
 			//The text "NaN" (not case sensitive) counts as a float
-			if (val && (!isNaN(val) || val.toUpperCase() === "NAN")) {
+			if (!isNaN(val) || val.toUpperCase() === "NAN") {
 				if (isNaN(val) || !Number.isInteger(val))
 					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
 				else
@@ -180,7 +178,7 @@
 				self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.STRING;
 				self.dimensionDomains[d] = self.data.map(function(p){return p[d];});
 			}
-		});
+		});//end dimensions.foreach()
 	};
 
 	/**
@@ -193,7 +191,7 @@
 
 		if (reloadAllData) {
 			// Check all data in the file
-			getAndParseCSV(self.path, function(data_arr, request) { self.dataUpdateCallback(data_arr, request); }, self.errorCallback);
+			getAndParseCSV(self.path, function(data_arr, request) { dataUpdateCallback(self, data_arr, request); }, self.errorCallback);
 		}
 		else {
 			// Only check for file size changes
@@ -209,7 +207,7 @@
 						var contentLength = xhReq.getResponseHeader('Content-Length');
 										
 						if (contentLength != self.prevContentLength) {
-							getAndParseCSV(self.path, function(data_arr, request) { self.dataUpdateCallback(data_arr, request); }, self.errorCallback);
+							getAndParseCSV(self.path, function(data_arr, request) { dataUpdateCallback(self, data_arr, request); }, self.errorCallback);
 						}
 					}
 				}
@@ -221,12 +219,11 @@
 
 	/**
 	 * Callback Function that checks if data has changed after loading the file.
+	 * @param {object} self - The database object
 	 * @param {string} data_arr = The data from the file.
 	 * @param {object} request = The request where we can get the response header information
 	 */
-	CINEMA_COMPONENTS.Database.prototype.dataUpdateCallback = function(data_arr, request) {
-		var self = this;
-
+	var dataUpdateCallback = function(self, data_arr, request) {
 		// Get new content length
 		self.prevContentLength = request.getResponseHeader('Content-Length');	
 
@@ -259,7 +256,7 @@
 		if (updated) {
 			self.data = newData;
 			self.dimensionDomains = {};
-			self.calcDimensions(self, data_arr);
+			calcDimensions(self, data_arr);
 
 			self.dispatch.call("dataUpdated",self, updateInfo);
 		}

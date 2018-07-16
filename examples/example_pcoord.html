@@ -68,8 +68,13 @@ Chang, and is licensed appropriately.
 		</div>
 		<!--Show the car that's currently being moused over in the chart-->
 		<div id ="mousedOver">
-			<div>Moused Over Car:
+			<div>Moused Over Car:</div>
 			<div id="mouseOverReadout"></div>
+		</div>
+		<!--Button that refreshes the data-->
+		<div id ="refreshData">
+			<div>Click to refresh the data:</div>
+			<div id="refreshDataReadout"></div>
 		</div>
 	</div>
 
@@ -79,8 +84,6 @@ Chang, and is licensed appropriately.
 		//Create Database
 		var db = new CINEMA_COMPONENTS.Database('data/cars.cdb',doneLoading);
 		var loaded = false;
-		var refreshBySizeInterval = false;
-		var refreshAllInterval = false;
 
 		/**
 		 * Loading callback function.
@@ -91,15 +94,6 @@ Chang, and is licensed appropriately.
 
 			//Monitor database for data updates
 			db.dispatch.on('dataUpdated', onDataUpdated);
-
-			// Create two intervals.  Every 5 seconds we see if the file size has changed
-			// and every 30 seconds, we load the full data to see if anything has changed.
-			refreshBySizeInterval = d3.interval(function(duration) {
-				db.refreshData(false);
-			}, 5*1000);
-			refreshAllInterval = d3.interval(function(duration) {
-				db.refreshData(true);
-			}, 30*1000);
 
 			//Create chart from database
 			// /^name$/ is a regex filtering out the name dimension of the data so that it doesn't show on the chart
@@ -154,6 +148,18 @@ Chang, and is licensed appropriately.
 				}
 			});
 
+			/**
+			 * Refresh data button that checks whether or not the database has
+			 * been updated.
+			 */
+			var refreshData = d3.select('#refreshDataReadout').html('')
+				.append('div').attr('class','resultView')
+				.text('Refresh Data');
+			refreshData.on("mousedown", function() {
+				refreshData.text('No Changes');
+				db.refreshData(true);
+			});
+
 			//Uncomment these lines to make the lines on the chart straight
 			//chart.smoothPaths = false;
 			//chart.redrawPaths();
@@ -198,7 +204,7 @@ Chang, and is licensed appropriately.
 		 * the onDataUpdated method is called with what has changed.
 		 */
 		function onDataUpdated(updateInfo) {
-			console.log(updateInfo);
+			d3.select('#refreshDataReadout').select('.resultView').text('Changes Loaded');
 		}
 
 		/**
