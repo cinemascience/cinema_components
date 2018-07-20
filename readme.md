@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.4.3
+## Version 2.5
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
@@ -116,9 +116,12 @@ You will be using this field a lot as most components keep track of data by stor
 	]
 }
 ```
+### Events
+- **'dataUpdated'** Triggered after a call to refreshData() if the data has been changed. Called with an updateInfo object as the argument which provides a summary of the data that changed.
 ### Methods
 - **isStringDimension(dimension)** Returns a boolean representing whether the given dimension is a string-type or not.
 - **getSimilar(query, threshold)** Get data rows (returned as an array of indices) that are similar to the given data (**query**). Difference between two data points is measured as the Manhattan distance where each dimension is normalized. i.e. The sum of the differencs on each dimension (each scaled from 0 to 1. On string dimensions, the distance is considered 0 if the strings are the same, otherwise 1 NaN values have 0 distance from each other, but 1 from anything else undefined values 0 distance from each other, but 1 from defined values. **query** Does not have to be a data point already in the database, but it must have the same dimensions as the database. **Threshold** is the value that the difference between **query** and data point must be to be considerd "similar."
+- **refreshData(reloadAllData)** Reload the database's CSV file and check for changes in the data. Calls the dataUpdated event if a change was found. By default, a change will only be triggered if the size of the CSV file has changed (i.e. rows were added or removed). If **reloadAllData** is true, then the change will be triggered regardless.
 
 ## Component
 All components in CinemaComponents are subclasses of Component. Component contains fields and methods common to all components (though some may be overridden). **Component.js** also contains definitions for some small classes that may be used by components such as **CINEMA\_COMPONENTS.ExtraData** and **CINEMA_COMPONENTS.Margin**
@@ -162,6 +165,7 @@ Inside the container, the glyph consists of an SVG element classed ".glyphChart.
 - **redraw()** Redraw the glyph path
 - **getAxisTransform(dimension)** Get the transform attribute for an axis with the given dimension.
 - **getTextRotation(dimension)** Get the rotation (in degrees) for text on an axis with the given dimension. Is rotated so that the text will always appear right-side up.
+- **updateData()** Should be called whenever the database's data has been changed. Note that if the currently selected data point is removed or changed, then setSelected should be called as well to update it.
 
 ## Pcoord
 Pcoord is a component for displaying and selecting data on a Parallel Coordinates Chart. It is an abstract class and cannot be built on its own. Instead use either a PcoordSVG or PcoordCanvas component which use different methods of rendering paths. Both subclasses expose the same fields and methods so they will be listed here.
@@ -196,6 +200,7 @@ Inside the container is a div classed '.pathContainer' and an SVG element classe
 - **getPath(data)** Get the path (contents of the 'd' attribute) for the given data point.
 - **getXPosition(dimension)** Get the x-coordinate for the given dimension on the chart.
 - **getYPosition(dimension, point)** Get y-coordinate of the point on the chart where the given data point passes through the given dimension's axis.
+- **updateData()** Should be called whenever the database's data has been changed.
 ### Difference between PcoordSVG and PcoordCanvas
 The contents of pathContainer is different for the SVG and Canvas versions of Pcoord. For SVG, pathContainer contains an SVG element with groups inside it for selected paths, highlighted paths and overlay paths, classed '.selectedPaths', '.highlightedPaths' and '.overlayPaths' respectively. Each group contains SVG Path elements. In selectedPaths, each path has, as an attribute, the index of its corresponding data point (called "index"). For Canvas, pathContainer contains canvases classed '.selectedCanvas', '.highlightedCanvas', and '.overlayCanvas' where paths are drawn. There is also an invisble canvas '.indexCanvas' that is used for determining mouse events.
 
@@ -214,6 +219,8 @@ Inside the container is a button to perform the query classed '.queryButton', a 
 - **upper (CINEMA_COMPONENTS.ExtraData)** Approximation of the upper-bound of the query given the threshold.
 - **lower (CINEMA_COMPONENTS.ExtraData)** Approximation of the lower-bound of the query given the threshold.
 - **scales (Object)** An object (keyed by dimension names) containing scales for slider. Maps a value from 0 to 100 to a value in a dimension.
+### Methods
+- **updateData()** Should be called whenever the database's data has been changed.
 
 ## ScatterPlot
 ScatterPlot is a component for viewing data on a 2D Scatter Plot. It is an abstract class and cannot be built on its own. Instead use either a ScatterPlotSVG or ScatterPlotCanvas component which use different methods of rendering points. Both subclasses expose the same fields and methods so they will be listed here.
@@ -242,6 +249,7 @@ In the container, there is a div classed '.pointContainer' two SVG elements clas
 - **redrawHighlightedPoints()** Redraw all the currently highlighted points. Actual implementation depends on the particular subclass of ScatterPlot.
 - **redrawOverlayPoints()** Redraw all of the overlay data. Actual implementation depends on the particular subclass of ScatterPlot.
 - **getPlottablePoints(selection)** Filter the given selection to only the indices of data that can be plotted and return the new selection. Data cannot be plotted if it has NaN or undefined values in at least one of the two dimensions being viewed.
+- **updateData()** Should be called whenever the database's data has been changed. After calling this, setSelection should be called as well to update.
 ### Difference between ScatterPlotSVG and ScatterPlotCanvas
 The contents of pointContainer is different for the SVG and Canvas versions of ScatterPlot. For SVG, pointContainer contains an SVG element with groups inside it for selected points, highlighted points and overlay points, classed '.selectedPoints', '.highlightedPoints' and '.overlayPoints' respectively. Each group contains SVG Circle elements. For Canvas, pointContainer contains canvases classed '.selectedCanvas', '.highlightedCanvas', and '.overlayCanvas' where points are drawn. There is also an invisble canvas '.indexCanvas' that is used for determining mouse events.
 
@@ -272,7 +280,10 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **createModalImg()** An event handler for img element that will create a modal overlay of the image when it is clicked.
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
-# Changelog 
+# Changelog
+### Version 2.5
+- Added ability to refresh data from CSV file and update database/components
+- Fixed Pcoord Component incorrectly rebuilding its axes when resizing
 ### Version 2.4.3
 - Fixed incorrect verification of databases in version 1.2 of the Spec.
 ### Version 2.4.2

@@ -155,7 +155,7 @@ Chang, and is licensed appropriately.
 			var refreshData = d3.select('#refreshDataReadout').html('')
 				.append('div').attr('class','resultView')
 				.text('Refresh Data');
-			refreshData.on("mousedown", function() {
+			refreshData.on("click", function() {
 				refreshData.text('No Changes');
 				db.refreshData(true);
 			});
@@ -205,6 +205,7 @@ Chang, and is licensed appropriately.
 		 */
 		function onDataUpdated(updateInfo) {
 			d3.select('#refreshDataReadout').select('.resultView').text('Changes Loaded');
+			chart.updateData();
 		}
 
 		/**

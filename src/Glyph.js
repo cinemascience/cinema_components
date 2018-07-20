@@ -234,7 +234,7 @@
 		this.axes.attr('transform',function(d){return self.getAxisTransform(d);})
 		//Rebuild axes
 		.each(function(d) {
-			d3.select(this).call(d3.axisLeft().scale(self.scales[d]));
+			d3.select(this).select('.axis').call(d3.axisLeft().scale(self.scales[d]));
 		});
 
 		//Re-tranform labels
@@ -258,7 +258,7 @@
 
 		//Rebuild axes
 		this.axes.each(function(d) {
-			d3.select(this).call(d3.axisLeft().scale(self.scales[d]));
+			d3.select(this).select('.axis').call(d3.axisLeft().scale(self.scales[d]));
 		});
 
 		this.redraw();

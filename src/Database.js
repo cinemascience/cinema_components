@@ -79,6 +79,7 @@
 			//Check for errors
 			self.error = checkErrors(data_arr);
 			if (self.error) {
+				console.warn(self.error);
 				if (errorCallback)
 					errorCallback();
 				return;
@@ -124,9 +125,11 @@
 	};
 
 	/**
-	 * Function that calculates the dimensions based on a data array
+	 * Calculate the dimension information for the database based off the given
+	 * array of data. Sets the 'data', 'dimensions', 'dimensionTypes' and 'dimensionDomains'
+	 * fields in the given database.
 	 * @param {object} self - The database object
-	 * @param {string} data_arr - The array of data
+	 * @param {string} data_arr - The array of data (we assume it has already been error-checked)
 	 */
 	var calcDimensions = function(self, data_arr) {
 		//Get dimensions (First row of data)
@@ -182,32 +185,41 @@
 	};
 
 	/**
-	 * Function that refreshes the data.  If there are changes, the dataUpdated dispatcher is called.
-	 * @param {bool} reloadAllData - Whether or not the refreshData should load the full file (true) data or
-	 *                               just check for file size changes (false)
+	 * Reloads the database's CSV file and refreshes the data if changes have been made.
+	 * If changes are found, sends an event through the dataUpdated dispatcher.
+	 * By default, this will only check that the size of the CSV has changed (i.e. rows have
+	 * been added or removed). Use the reloadAllData parameter to force an update of all data.
 	 */
 	CINEMA_COMPONENTS.Database.prototype.refreshData = function(reloadAllData) {
 		var self = this;
 
 		if (reloadAllData) {
 			// Check all data in the file
-			getAndParseCSV(self.path, function(data_arr, request) { dataUpdateCallback(self, data_arr, request); }, self.errorCallback);
+			getAndParseCSV(self.path,
+				function(data_arr, request) { 
+					dataUpdateCallback(self, data_arr, request); 
+				}, 
+				self.errorCallback);
 		}
 		else {
 			// Only check for file size changes
 			var xhReq = new XMLHttpRequest();
-			xhReq.open("HEAD", self.path, true);
+			xhReq.open("HEAD", self.path, true);//HEAD request returns only Http response header
 			xhReq.onreadystatechange = function() {
 				if (xhReq.readyState === 4) {
 					if (xhReq.status === 200 || 
 						//Safari returns 0 on success (while other browsers use 0 for an error)
 						(navigator.userAgent.match(/Safari/) && xhReq.status === 0)
 					) {
-										
-						var contentLength = xhReq.getResponseHeader('Content-Length');
-										
+						//If contentLength is different, request the full file
+						//and update
+						var contentLength = xhReq.getResponseHeader('Content-Length');				
 						if (contentLength != self.prevContentLength) {
-							getAndParseCSV(self.path, function(data_arr, request) { dataUpdateCallback(self, data_arr, request); }, self.errorCallback);
+							getAndParseCSV(self.path,
+								function(data_arr, request) { 
+									dataUpdateCallback(self, data_arr, request); 
+								},
+								self.errorCallback);
 						}
 					}
 				}
@@ -218,12 +230,31 @@
 	}
 
 	/**
-	 * Callback Function that checks if data has changed after loading the file.
+	 * Callback when getAndParseCSV returns a data array to update the data in the database.
 	 * @param {object} self - The database object
-	 * @param {string} data_arr = The data from the file.
-	 * @param {object} request = The request where we can get the response header information
+	 * @param {string} data_arr = The data from the file (not yet error checked)
+	 * @param {XMLHttpRequest} request = The request where we can get the response header information
 	 */
 	var dataUpdateCallback = function(self, data_arr, request) {
+		//Ensure that the dimensions have not changed
+		if (data_arr[0].length != self.dimensions.length) {
+			console.warn("Updates to data cannot change the number of dimensions!")
+			return;
+		}
+		for (var i in self.dimensions) {
+			if (self.dimensions[i] != data_arr[0][i]) {
+				console.warn("Updates to data cannot change the names of dimensions!")
+				return;
+			}
+		} 
+
+		//If there are errors in the data, don't update
+		var error = checkErrors(data_arr);
+		if (error) {
+			console.warn("Error in updated data!\n"+error);
+			return;
+		}
+
 		// Get new content length
 		self.prevContentLength = request.getResponseHeader('Content-Length');	
 
@@ -336,7 +367,13 @@
 		return data;
 	}
 
-	//Fetch a csv file, parse data out of it. Return data with callback
+	/**
+	 * Fetch a CSV file and parse the data into a two-dimensional array.
+	 * @param {String} path URL of CSV file
+	 * @param {Function} callback Callback if succesful, provides the data array and a reference
+	 * to the XMLHttpRequest that retrieved it
+	 * @param {Function} errorCallback Called if an error occured with the request
+	 */
 	var getAndParseCSV = function(path,callback,errorCallback) {
 		var request = new XMLHttpRequest();
 		request.open("GET",path,true);
@@ -358,12 +395,14 @@
 		request.send(null);
 	}
 
-	//Get a value from 0 to 1 reprsenting where val lies between min and max
+	/**
+	 * Get a value from 0 to 1 reprsenting where val lies between min and max
+	 */
 	var getNormalizedValue = function(val, min, max) {
 		return (max-min == 0) ? 0 : ((val-min) / (max-min));
 	}
 
-	/*
+	/**
 	* Parse the text of a csv file into a 2 dimensional array.
 	* Distinguishes between empty strings and undefined values
 	*
@@ -404,7 +443,7 @@
 		return data;
 	}
 
-	/*
+	/**
 	 * Check for critical errors in the given data.
 	 * Returns an error message if an error was found.
 	 * Doesn't return anything if no errors were found.

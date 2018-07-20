@@ -350,7 +350,7 @@
 			return "translate("+self.getXPosition(d)+")";
 		});
 		this.axes.each(function(d) {
-			d3.select(this).call(d3.axisLeft().scale(self.y[d]));
+			d3.select(this).select('.axis').call(d3.axisLeft().scale(self.y[d]));
 			//if scale is linear, then update the NaN extension on the axis
 			if (!self.db.isStringDimension(d)) {
 				d3.select(this).select('path.NaNExtension')
@@ -391,9 +391,9 @@
 
 		//Rebuild axes
 		this.axes.each(function(d) {
-			d3.select(this).call(d3.axisLeft().scale(self.y[d]));
+			d3.select(this).select('.axis').call(d3.axisLeft().scale(self.y[d]));
 		});
-
+		
 		this.updateSelection(true);
 	}
 
