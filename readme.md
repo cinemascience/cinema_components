@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.5
+## Version 2.6
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
@@ -75,6 +75,7 @@ At the heart of CinemaComponents is the Database object. An instance of Database
 - **directory (string)** The path to the '.cdb' directory for the database.
 - **callback (function)** Function to call once loading has been succesfully completed. Called with this instance of Database as an argument
 - **errorCallback (function)** Function to call if an error occurs while loading. Called with the error message as an argument. Note that if an error occurs, **callback** will never be called.
+- **filter (Object)** An object representing a filter to apply to the database when loading data (So that not all the data in the file is shown in the database). Each key in the object is the name of a numeric dimension in the database and each value is a 2-length array definiing the minimum and maximum allowed values.
 
 Example:
 ```javascript
@@ -190,6 +191,7 @@ Inside the container is a div classed '.pathContainer' and an SVG element classe
 ### Methods
 - **updateSelection()** Update the selection according to the state of brushExtents. If the selection has changed, will trigger the 'selectionchange' event.
 - **setSelection(selection)** Set the selections on each axis to encapsulate all the data represented by the given list of indices. Note that the final selection may contain more data than is listed in the given array.
+- **filterSelection(filter)** Sets the chart's selection to match the ranges defined in the given filter object. Just like the filter for a database, each key in the object is the name of a numeric dimension in the database and each value is a 2-length array definiing the minimum and maximum allowed values.
 - **setHighlightedPaths(indices)** Set the highlighted data to the data with the given indices.
 - **setOverlayPaths(data)** Set the overlays on the chart to the data from the given array of **CINEMA_COMPONENTS.ExtraData** objects.
 - **redrawPaths()** Shortcut method to redraw all paths. Calls **redrawSelectedPaths()**,**redrawHighlightedPaths()** and **redrawOverlayPaths()**.
@@ -281,6 +283,9 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
 # Changelog
+### Version 2.6
+- Added filter parameter to Database constructor
+- Added filterSelection function to Pcoord
 ### Version 2.5
 - Added ability to refresh data from CSV file and update database/components
 - Fixed Pcoord Component incorrectly rebuilding its axes when resizing

@@ -42,8 +42,12 @@
 	 * @param {function({Database} self)} callback - Function to call when loading has finished 
 	 * (only called if loading finished without errors)
 	 * @param {function({string} message)} errorCallback - Function to call if errors were found with data
+	 * @param {Object} filter - An object defining a filter to apply to the incoming data (so that
+	 * only some of the data from the file is actually represented in the database). Keys in the
+	 * filter object should match a numeric dimension and contain an array of two values representing
+	 * the minimum and maximum values to allow.
 	 */
-	CINEMA_COMPONENTS.Database = function(directory, callback, errorCallback) {
+	CINEMA_COMPONENTS.Database = function(directory, callback, errorCallback, filter) {
 		/** @type {string} - Path to the '.cdb' directory containing the database */
 		this.directory = directory;
 	
@@ -61,6 +65,9 @@
 		this.dimensionTypes = {};
 		/** @type {Object} - Contains the domains for each dimension (formatted like the domain for a d3 scale) */
 		this.dimensionDomains = {};
+
+		/** @type {Object} - The filter applied to incoming data */
+		this.filter = filter
 
 		/** @type {boolean} Whether or not this database has additional axis ordering data */
 		this.hasAxisOrdering = false;
@@ -85,7 +92,7 @@
 				return;
 			}
 
-			calcDimensions(self, data_arr);
+			calcData(self, data_arr);
 
 			//Attempt to load an axis_order.csv file
 			getAndParseCSV(directory+'/axis_order.csv',
@@ -125,13 +132,13 @@
 	};
 
 	/**
-	 * Calculate the dimension information for the database based off the given
+	 * Set the database's data and calculate dimension information based off the given
 	 * array of data. Sets the 'data', 'dimensions', 'dimensionTypes' and 'dimensionDomains'
 	 * fields in the given database.
 	 * @param {object} self - The database object
 	 * @param {string} data_arr - The array of data (we assume it has already been error-checked)
 	 */
-	var calcDimensions = function(self, data_arr) {
+	var calcData = function(self, data_arr) {
 		//Get dimensions (First row of data)
 		self.dimensions = data_arr[0];
 		
@@ -141,6 +148,10 @@
 			self.dimensions.forEach(function(p,i){obj[p] = d[i];});
 			return obj;
 		});
+
+		//Keep track of data that gets caught in the filter while parsing
+		//to remove after all the parsing has been done
+		var filterdOut = []
 
 		//Determine dimension types and calculate domains
 		self.dimensions.forEach(function(d) {
@@ -158,6 +169,12 @@
 					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.FLOAT;
 				else
 					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
+				//Check if this dimension is listed in the filter
+				var filter = self.filter ? self.filter[d] : null
+				if (filter && (!Array.isArray(filter) || filter.length != 2)) {
+					console.warn("Filter for dimension '"+d+"' must be an array of length two.")
+					filter = null
+				}
 				//calculate domain for numeric dimension
 				var i;//the first index to contain a value that is not "NaN"
 				for (i = 0; i < self.data.length && isNaN(self.data[i][d]); i++) {}
@@ -167,8 +184,21 @@
 				else {
 					var min = self.data[i][d];
 					var max = self.data[i][d];
+					//Calculated min and max cannot extend outside of min and max
+					//defined in filter
+					if (filter) {
+						min = Math.max(min,filter[0])
+						max = Math.min(max,filter[1])
+					}
 					for (var j = i; j < self.data.length; j++) {
 						if (!isNaN(self.data[j][d])) {
+							//Ignore data that lies outside the min and max defined in the filter
+							if (filter &&
+								(self.data[j][d] < filter[0] || self.data[j][d] > filter[1])
+							) {
+								filterdOut[j] = true;
+								continue;
+							}
 							min = Math.min(min,self.data[j][d]);
 							max = Math.max(max,self.data[j][d]);
 						}
@@ -182,6 +212,9 @@
 				self.dimensionDomains[d] = self.data.map(function(p){return p[d];});
 			}
 		});//end dimensions.foreach()
+
+		//Remove any data that was marked to be filtered out while parsing
+		self.data = self.data.filter(function(d,i){return !filterdOut[i]});
 	};
 
 	/**
@@ -287,7 +320,7 @@
 		if (updated) {
 			self.data = newData;
 			self.dimensionDomains = {};
-			calcDimensions(self, data_arr);
+			calcData(self, data_arr);
 
 			self.dispatch.call("dataUpdated",self, updateInfo);
 		}
@@ -2006,6 +2039,7 @@
 			.data(this.dimensions)
 		.enter().append('g')
 			.classed('axisGroup',true)
+			.attr('dimension',function(d){return d;})
 			.attr('transform', function(d) {
 				return "translate("+self.x(d)+")";
 			})
@@ -2230,6 +2264,32 @@
 					return [ranges[d][0]-5,ranges[d][1]+5];
 				});
 			});
+		//call brush event handler
+		this.axisBrush();
+	}
+
+	/**
+	 * Set the chart's selection to match the ranges defined in the given
+	 * filter.
+	 * @param {Object} filter Object defining the filter. Each key is the name
+	 * of numeric dimension and each value is a 2-length array containing the minimum
+	 * and maximum values.
+	 */
+	CINEMA_COMPONENTS.Pcoord.prototype.filterSelection = function(filter) {
+		var self = this;
+		this.dimensions.forEach(function(d) {
+			//get filter for this particular dimension 'f'
+			var f = filter ? filter[d] : null
+			if (f && Array.isArray(f) && f.length == 2 && !isNaN(f[0]) && !isNaN(f[1])) {
+				//clamp range to bounds of chart
+				var range = [
+					Math.max(self.y[d](f[1]),0),
+					Math.min(self.y[d](f[0]),self.internalHeight)
+				]
+				self.axisContainer.select('.axisGroup[dimension='+d+']').select('g.brush')
+					.call(self.brush.move, function() {return range;})
+			}
+		});
 		//call brush event handler
 		this.axisBrush();
 	}
