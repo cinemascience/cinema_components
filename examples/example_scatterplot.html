@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!--
 A demonstration of some basic usage of the ScatterPlotCanvas component
+As well as applying a filter to a database.
 
 Copyright 2017 Los Alamos National Laboratory
 
@@ -61,8 +62,18 @@ Chang, and is licensed appropriately.
 	<script>
 		var chart;
 
+		//Define a custom filter to apply to the database.
+		//We decided we don't want to see 3-cylinder cars or
+		//cars older than '74 or newer than '80
+		var filter = {
+			"cylinders": [4.0,8.0],
+			"year": [74,80],
+			"power (hp)" : "this isn't even an array!"
+				//This value is incorrectly formatted. Watch the console for an error
+		}
+
 		//Create Database
-		var db = new CINEMA_COMPONENTS.Database('data/cars.cdb',doneLoading);
+		var db = new CINEMA_COMPONENTS.Database('data/cars.cdb',doneLoading,error,filter);
 		var loaded = false;
 
 		/**
@@ -91,6 +102,14 @@ Chang, and is licensed appropriately.
 					chart.setHighlightedPoints([index]);
 			})
 		} //end doneLoading()
+
+		/**
+		 * Error callback function.
+		 * This will be called if an error occured while loading the database.
+		 */
+		function error() {
+			window.alert("Oh no! Something went wrong loading the database!!!");
+		}
 
 		/**
 		 * It is important to call updateSize() whenever the size of the

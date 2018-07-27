@@ -170,8 +170,8 @@
 				else
 					self.dimensionTypes[d] = CINEMA_COMPONENTS.DIMENSION_TYPE.INTEGER;
 				//Check if this dimension is listed in the filter
-				var filter = self.filter[d]
-				if (filter && (!isArray(filter) || filter.length != 2)) {
+				var filter = self.filter ? self.filter[d] : null
+				if (filter && (!Array.isArray(filter) || filter.length != 2)) {
 					console.warn("Filter for dimension '"+d+"' must be an array of length two.")
 					filter = null
 				}
