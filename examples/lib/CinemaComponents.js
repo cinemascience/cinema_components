@@ -2039,6 +2039,7 @@
 			.data(this.dimensions)
 		.enter().append('g')
 			.classed('axisGroup',true)
+			.attr('dimension',function(d){return d;})
 			.attr('transform', function(d) {
 				return "translate("+self.x(d)+")";
 			})
@@ -2263,6 +2264,32 @@
 					return [ranges[d][0]-5,ranges[d][1]+5];
 				});
 			});
+		//call brush event handler
+		this.axisBrush();
+	}
+
+	/**
+	 * Set the chart's selection to match the ranges defined in the given
+	 * filter.
+	 * @param {Object} filter Object defining the filter. Each key is the name
+	 * of numeric dimension and each value is a 2-length array containing the minimum
+	 * and maximum values.
+	 */
+	CINEMA_COMPONENTS.Pcoord.prototype.filterSelection = function(filter) {
+		var self = this;
+		this.dimensions.forEach(function(d) {
+			//get filter for this particular dimension 'f'
+			var f = filter ? filter[d] : null
+			if (f && Array.isArray(f) && f.length == 2 && !isNaN(f[0]) && !isNaN(f[1])) {
+				//clamp range to bounds of chart
+				var range = [
+					Math.max(self.y[d](f[1]),0),
+					Math.min(self.y[d](f[0]),self.internalHeight)
+				]
+				self.axisContainer.select('.axisGroup[dimension='+d+']').select('g.brush')
+					.call(self.brush.move, function() {return range;})
+			}
+		});
 		//call brush event handler
 		this.axisBrush();
 	}
