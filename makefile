@@ -1,6 +1,7 @@
 FILES=Database.js Component.js Glyph.js ImageSpread.js Pcoord.js PcoordCanvas.js PcoordSVG.js Query.js ScatterPlot.js ScatterPlotCanvas.js ScatterPlotSVG.js
 VERSION=$(shell cat version)
 OUTPUT_PREFIX=CinemaComponents.v$(VERSION)
+MINIFIER=$(shell if [ -e minifier.local ]; then cat minifier.local; else cat minifier; fi)
 
 full:
 	mkdir -p build
@@ -14,7 +15,7 @@ deploy/examples: full
 
 minify: full
 	mkdir -p build
-	cat build/$(OUTPUT_PREFIX).js | babel-minify > build/$(OUTPUT_PREFIX).min.js
+	cat build/$(OUTPUT_PREFIX).js | $(MINIFIER) > build/$(OUTPUT_PREFIX).min.js
 
 build/cinemascience.github.io:
 	cd build; git clone https://github.com/cinemascience/cinemascience.github.io.git

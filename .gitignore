@@ -3,3 +3,4 @@ deprecated/
 build.sh
 *.min.js
 build
+minifier.local
