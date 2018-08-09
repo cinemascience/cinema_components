@@ -160,7 +160,7 @@
 			var val = self.data[0][d];
 			var i = 0;
 			while (val === undefined && i < self.data.length)
-				val = self.data[++i];
+				val = self.data[++i][d];
 
 			//Check if value is a float or integer
 			//The text "NaN" (not case sensitive) counts as a float
