@@ -1,0 +1,3 @@
+version 2.6
+minifier babel-minify
+explorer_dir ../cinema_explorer

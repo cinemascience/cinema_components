@@ -1,7 +1,9 @@
 FILES=Database.js Component.js Glyph.js ImageSpread.js Pcoord.js PcoordCanvas.js PcoordSVG.js Query.js ScatterPlot.js ScatterPlotCanvas.js ScatterPlotSVG.js
-VERSION=$(shell cat version)
+BUILD_OPTS=$(shell if [ -e build_options.local ]; then echo build_options.local; else echo build_options; fi)
+VERSION=$(shell grep version $(BUILD_OPTS) | sed -e 's/^version //')
+MINIFIER=$(shell grep minifier $(BUILD_OPTS) | sed -e 's/^minifier //')
+EXPLORER_DIR=$(shell grep explorer_dir $(BUILD_OPTS) | sed -e 's/^explorer_dir //')
 OUTPUT_PREFIX=CinemaComponents.v$(VERSION)
-MINIFIER=$(shell if [ -e minifier.local ]; then cat minifier.local; else cat minifier; fi)
 
 full:
 	mkdir -p build
@@ -12,6 +14,10 @@ full:
 deploy/examples: full
 	cp build/$(OUTPUT_PREFIX).js examples/lib/CinemaComponents.js
 	cp build/$(OUTPUT_PREFIX).min.css examples/css/CinemaComponents.min.css
+
+deploy/explorer: full
+	cp build/$(OUTPUT_PREFIX).js $(EXPLORER_DIR)/test/CinemaComponents.js
+	cp build/$(OUTPUT_PREFIX).min.css $(EXPLORER_DIR)/test/CinemaComponents.min.css
 
 minify: full
 	mkdir -p build
