@@ -1,11 +1,7 @@
 # CINEMA_COMPONENTS
-## Version 2.6
+## Version 2.6.1
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
-
-**To Do: Once this repository is on Github, update readme with pictures and better formatting because Teamforge has poor markdown support.**
-
-**Requires D3v4**
 
 # Components
 ### PcoordSVG
@@ -283,6 +279,8 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
 # Changelog
+### Version 2.6.1
+- Fixed incorrect behavior when databases had undefined values in the first row
 ### Version 2.6
 - Added filter parameter to Database constructor
 - Added filterSelection function to Pcoord
