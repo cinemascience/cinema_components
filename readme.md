@@ -59,8 +59,14 @@ Below is a simple example of a webpage that uses a pcoordSVG component to contro
 The provided makefile will combine all the cinema components source files into a single file. Be aware of the following targets available:
 - **full**: Concatenate all the javascript and css files together into build/CinemaComponents.v{version}.js and build/CinemaComponents.v{version}.min.css
 - **deploy/examples**: Do 'full' and copy files to the examples directory to update examples.
-- **minify**: Do 'full' and the minify the javascript. Requires the babel-minify node.js module.
+- **deploy/explorer**: Do 'full' and copy files to the 'test' directory in Cinema Explorer. The directory where Cinema Explorer is is specified with the 'explorer_dir' build option.
+- **minify**: Do 'full' and the minify the javascript. Uses whatever filter is specified with the 'minifier' build option.
+- **deploy**: Minify and push the current version to the cinemascience.github.io repository. Naturally, this will only work if you have the ability to push to that repository.
 - **clean**: Remove the build directory
+
+## Build Options
+
+The file **build_options** contains various options for building as space-separated, key-value pairs (one-per-line). If you want to override these values to values specific to your machine, copy and rename the file to **build_options.local** and the makefile will use the values from there instead, while the local file is ignored by git.
 
 # Documentation
 
