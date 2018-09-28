@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.6.1
+## Version 2.6.2
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 

@@ -396,13 +396,15 @@
         backgroundContainer.attr('class', 'modalBackground')
             .on('click', function() {
                 //clicking the modal removes it
-                d3.select(this).remove();
+                if (d3.event.target.tagName === 'IMG') {
+                	d3.select(this).remove();
+            	}
             });
         const container = backgroundContainer.append('div');
         container.attr('class', 'modalViewer').on('click', function() {
             //clicking the modal removes it
             //d3.select(this).remove();
-            d3.event.stopPropagation();
+            //d3.event.stopPropagation();
         });
 
         var global = {};
@@ -571,13 +573,15 @@
         backgroundContainer.attr('class', 'modalBackground')
             .on('click', function() {
                 //clicking the modal removes it
-                d3.select(this).remove();
+                if (d3.event.target.tagName === 'IMG') {
+                	d3.select(this).remove();
+            	}
             });
         const container = backgroundContainer.append('div');
         container.attr('class', 'modalViewer').on('click', function() {
             //clicking the modal removes it
             //d3.select(this).remove();
-            d3.event.stopPropagation();
+            //d3.event.stopPropagation();
         });
 
         var global = {};
