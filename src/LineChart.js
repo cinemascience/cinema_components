@@ -64,6 +64,16 @@
 		return indexOf.call(this, needle) > -1;
 	};
 
+	//Allowed prefixes for uncertainty
+	const allowedUPrefixes = ["u_min_","u_avg_","u_max_","u_97_","u_03_"];
+
+	const hasAllowedUPrefix = function(dimension) {
+		for(i = 0; i < allowedUPrefixes.length; i++)
+			if(dimension.startsWith(allowedUPrefixes[i]))
+				return true;
+		return false;
+	}
+
 	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex) {
 		var self = this;
 
@@ -73,7 +83,7 @@
 
 		/** @type {CINEMA_COMPONENTS.Margin} Override default margin */
 		this.margin = new CINEMA_COMPONENTS.Margin(20,30,50,40);
-		this.axismargin = new CINEMA_COMPONENTS.Margin(10,10,10,10);
+		this.axismargin = new CINEMA_COMPONENTS.Margin(15,15,15,15);
 
 		//call super-constructor
 		CINEMA_COMPONENTS.Component.call(this,parent,database,filterRegex);
@@ -180,12 +190,11 @@
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.selectAll("path")
-				.data(this.plotData.series)
+				.data(this.plotData.series.filter(entry => entry.show))
 				.join("path")
 				.style("mix-blend-mode", "multiply")
-				.attr("d", d => this.chartline(d.values));
+				.attr("d", d => self.chartline(d.values));
 
-			//this.svg.call(this.hover, this.path);
 			this.svg.style("position", "relative");
 
 			this.svg
@@ -206,9 +215,16 @@
 				.attr("r", 2.5);
 
 			this.dot.append("text")
+				.attr("id", "dot_name_text")
 				.style("font", "10px sans-serif")
 				.attr("text-anchor", "middle")
-				.attr("y", -8);
+				.attr("y", -6);
+
+			this.dot.append("text")
+				.attr("id", "dot_number_text")
+				.style("font", "10px sans-serif")
+				.attr("text-anchor", "middle")
+				.attr("y", +10);
 
   		return this.svg.node();
 		}
@@ -275,6 +291,8 @@
 	 * Updates the sizing and scaling of all parts of the chart and redraws
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.updateSize = function() {
+		var self = this;
+
 		//Call super (will recalculate size)
 		CINEMA_COMPONENTS.Component.prototype.updateSize.call(this);
 
@@ -306,7 +324,7 @@
 				.y(d => this.y(d))
 
 			this.path
-				.attr("d", d => this.chartline(d.values));
+				.attr("d", d => self.chartline(d.values));
 		}
 	};
 
@@ -323,10 +341,11 @@
 		var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
 		var i0 = i1 - 1;
 		var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
-		var s = this.plotData.series.reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
+		var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
 		this.path.attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
 		this.dot.attr("transform", `translate(${self.x(self.plotData.dates[i])},${self.y(s.values[i])})`);
-		this.dot.attr("overflow", "visible").select("text").text(s.name);
+		this.dot.select("#dot_name_text").attr("overflow", "visible").text(s.name);
+		this.dot.select("#dot_number_text").attr("overflow", "visible").text(s.values[i].toFixed(2));
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.entered = function() {
@@ -354,8 +373,6 @@
 	CINEMA_COMPONENTS.LineChart.prototype.redraw = function() {
 		var self = this;
 
-		console.log(self.plotData);
-
 		self.x
 			.domain(d3.extent(self.plotData.dates))
 			.range([self.axismargin.left, self.internalWidth - self.axismargin.right]);
@@ -377,7 +394,7 @@
 			.y(d => self.y(d));
 
 		self.path
-			.data(this.plotData.series)
+			.data(this.plotData.series.filter(entry => entry.show))
 			.attr("d", d => self.chartline(d.values));
 	};
 
@@ -389,7 +406,9 @@
 			if(
 			this.dimensions[i].startsWith("u_min_") ||
 			this.dimensions[i].startsWith("u_avg_") ||
-			this.dimensions[i].startsWith("u_max_"))
+			this.dimensions[i].startsWith("u_max_") ||
+			this.dimensions[i].startsWith("u_97_") ||
+			this.dimensions[i].startsWith("u_03_"))
 				uncertaintyDims.push(this.dimensions[i]);
 
 		//Retrieve all possible values of the current dimension
@@ -406,7 +425,8 @@
 			dataSeries.push({
 				name: value,
 				values : Array(dataDates.length).fill(0),
-				occurences : Array(dataDates.length).fill(0)
+				occurences : Array(dataDates.length).fill(0),
+				show : true
 			});
 		});
 
@@ -426,25 +446,32 @@
 			});
 		});
 
-		//Calculate average uncertainty
-		var averageUncertainty = Array(dataDates.length).fill(0);
-		var count = 0;
+		allowedUPrefixes.forEach(function(uncertaintyDim, index) {
+			var averageUncertainty = Array(dataDates.length).fill(0);
+			var count = 0;
 
-		dataSeries.forEach(function(dataSeriesObject, indexObject) {
-			dataSeriesObject.values.forEach(function(value, index) {
-				averageUncertainty[index] += value;
+			dataSeries.forEach(function(dataSeriesObject, indexObject) {
+				if(dataSeriesObject.name.startsWith(uncertaintyDim))
+				{
+					dataSeriesObject.values.forEach(function(value, index) {
+						averageUncertainty[index] += value;
+					});
+					count += 1;
+				}
 			});
-			count += 1;
-		});
 
-		averageUncertainty.forEach(function(value, index) {
-			averageUncertainty[index] = value / count;
-		});
+			if(count > 0) {
+				averageUncertainty.forEach(function(value, index) {
+					averageUncertainty[index] = value / count;
+				});
 
-		dataSeries.push({
-			name: "Average Uncertainty",
-			values : averageUncertainty,
-			occurences : count
+				dataSeries.push({
+					name: uncertaintyDim + " Uncertainty",
+					values : averageUncertainty,
+					occurences : count,
+					show : true
+				});
+			}
 		});
 
 		//Convert dates to numbers
