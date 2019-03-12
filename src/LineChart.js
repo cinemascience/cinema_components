@@ -35,18 +35,33 @@
 	/** @type {boolean} - Flag to indicate that the LineChart module has been included */
 	CINEMA_COMPONENTS.LINECHART_INCLUDED = true;
 
-	//Constants
-	var testData = {
-		y: "% Unemployment",
-		series:
-		[
-			{name: "Test", values: [2.5, 2.6, 2.7, 2.0, 3.0]},
-			{name: "Tesy", values: [3.5, 3.6, 3.7, 2.0, 1.0]}
-		],
-		dates:
-		[
-			0,1,2,3,4
-		]
+	//Retrieve if a value is contained in an array
+	var containedInArray = function(needle) {
+		//Per spec, the way to identify NaN is that it is not equal to itself
+		var findNaN = needle !== needle;
+		var indexOf;
+
+		if(!findNaN && typeof Array.prototype.indexOf === 'function') {
+			indexOf = Array.prototype.indexOf;
+		}
+		else {
+			indexOf = function(needle) {
+				var i = -1, index = -1;
+
+				for(i = 0; i < this.length; i++) {
+					var item = this[i];
+
+					if((findNaN && item !== item) || item === needle) {
+						index = i;
+						break;
+					}
+				}
+
+			return index;
+			};
+		}
+
+		return indexOf.call(this, needle) > -1;
 	};
 
 	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex) {
@@ -57,11 +72,22 @@
 		 ***************************************/
 
 		/** @type {CINEMA_COMPONENTS.Margin} Override default margin */
-		this.margin = new CINEMA_COMPONENTS.Margin(20,20,30,40);
+		this.margin = new CINEMA_COMPONENTS.Margin(20,30,50,40);
+		this.axismargin = new CINEMA_COMPONENTS.Margin(10,10,10,10);
 
 		//call super-constructor
 		CINEMA_COMPONENTS.Component.call(this,parent,database,filterRegex);
 		//after size is calculate in the super-constructor, set radius and innerMargin
+
+		/***************************************
+		 * DATA
+		 ***************************************/
+
+		/** @type {string} The currently selected dimensions for each axis*/
+		this.xDimension = this.dimensions[0];
+
+		this.plotData = {};
+		this.prepareData();
 
 		/***************************************
 		 * EVENTS
@@ -76,37 +102,7 @@
 		 * 'ychanged': Triggered when the y dimension being viewed is changed
 		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("mouseover","mousemove","mouseenter","mouseleave");
-
-		/***************************************
-		 * SCALES
-		 ***************************************/
-
-		this.xscale = d3.scaleTime()
-			.domain(d3.extent(testData.dates))
-			.range([this.margin.left, this.parentRect.width - this.margin.right])
-
-		this.yscale = d3.scaleLinear()
-			.domain([0, d3.max(testData.series, d => d3.max(d.values))]).nice()
-			.range([this.parentRect.height - this.margin.bottom, this.margin.top])
-
-		/***************************************
-		 * CHART AXIS
-		 ***************************************/
-
-		this.xaxis = g => g
-			.attr("transform", `translate(0,${this.parentRect.height - this.margin.bottom})`)
-			.call(d3.axisBottom(this.xscale).ticks(this.parentRect.width / 80).tickSizeOuter(0))
-
-		this.yaxis = g => g
-			.attr("transform", `translate(${this.margin.left},0)`)
-			.call(d3.axisLeft(this.yscale))
-			.call(g => g.select(".domain").remove())
-			.call(g => g.select(".tick:last-of-type text").clone()
-			.attr("x", 3)
-			.attr("text-anchor", "start")
-			.attr("font-weight", "bold")
-			.text(testData.y))
+		this.dispatch = d3.dispatch("mouseover","mousemove","mouseenter","mouseleave","xchanged");
 
 		/***************************************
 		 * CHART LINES
@@ -114,87 +110,68 @@
 
 		this.chartline = d3.line()
 			.defined(d => !isNaN(d))
-			.x((d, i) => this.xscale(testData.dates[i]))
-			.y(d => this.yscale(d))
-
-		/***************************************
-		 * FUNCTIONS
-		 ***************************************/
-
-		this.hover = function(svg, path) {
-			svg.style("position", "relative");
-
-			if ("ontouchstart" in document) {
-				svg.style("-webkit-tap-highlight-color", "transparent")
-				.on("touchmove", moved)
-				.on("touchstart", entered)
-				.on("touchend", left)
-			}
-			else {
-				svg.on("mousemove", moved)
-					.on("mouseenter", entered)
-					.on("mouseleave", left);
-			}
-
-			const dot = svg.append("g")
-				.attr("display", "none");
-
-			dot.append("circle")
-				.attr("r", 2.5);
-
-			dot.append("text")
-				.style("font", "10px sans-serif")
-				.attr("text-anchor", "middle")
-				.attr("y", -8);
-
-			function moved() {
-				//d3.event.preventDefault();
-				//const ym = this.yscale.invert(d3.event.layerY);
-				//const xm = this.xscale.invert(d3.event.layerX);
-				//const i1 = d3.bisectLeft(testData.dates, xm, 1);
-				//const i0 = i1 - 1;
-				//const i = xm - testData.dates[i0] > testData.dates[i1] - xm ? i1 : i0;
-				//const s = testData.series.reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
-				//path.attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
-				//dot.attr("transform", `translate(${this.xscale(testData.dates[i])},${this.yscale(s.values[i])})`);
-				//dot.select("text").text(s.name);
-			}
-
-			function entered() {
-				//path.style("mix-blend-mode", null).attr("stroke", "#ddd");
-				//dot.attr("display", null);
-			}
-
-			function left() {
-				//path.style("mix-blend-mode", "multiply").attr("stroke", null);
-				//dot.attr("display", "none");
-			}
-		}
+			.x((d, i) => this.x(this.plotData.dates[i]))
+			.y(d => this.y(d))
 
 		/***************************************
 		 * DOM Content
 		 ***************************************/
 
-		//Create DOM content
-		//Specify that this is a Glyph component
-		d3.select(this.container).classed('LINE',true);
+		//Plot
+		d3.select(this.container).classed('MULTILINE_PLOT',true);
+
+		this.mainContainer = d3.select(this.container).append('div')
+			.classed('mainContainer',true)
+			.style('position','absolute')
+			.style('top',this.margin.top+'px')
+			.style('right',this.margin.right+'px')
+			.style('bottom',this.margin.bottom+'px')
+			.style('left',this.margin.left+'px')
+			.style('width',this.internalWidth+'px')
+			.style('height',this.internalHeight+'px');
+
+		/** @type {DOM (select)} The select elements for selecting the dimension for x axis */
+		//Get all non uncertainty and non file dimensions
+		this.validDim = [];
+		for(var i=0, len=this.dimensions.length; i < len; i++)
+			if(!(
+			this.dimensions[i].startsWith("u_min_") ||
+			this.dimensions[i].startsWith("u_avg_") ||
+			this.dimensions[i].startsWith("u_max_") ||
+			this.dimensions[i].startsWith("FILE")
+			))
+				this.validDim.push(this.dimensions[i]);
+
+		this.xSelect = d3.select(this.container).append('select')
+			.classed('dimensionSelect x',true)
+			.style('position','absolute')
+			.node();
+
+		d3.select(this.xSelect).selectAll('option')
+			.data(this.validDim)
+			.enter().append('option')
+				.attr('value',function(d){return d;})
+				.text(function(d){return d;});
+		d3.select(this.xSelect).node().value = this.xDimension;
+
+		d3.select(this.xSelect).on('input',function() {
+			self.xDimension = this.value;
+			self.updateData();
+			self.x = d3.scaleLinear()
+				.domain(d3.extent(self.plotData.dates));
+			self.xAxisContainer.select('.axis')
+				.call(d3.axisBottom().scale(self.x));
+			self.dispatch.call('xchanged',self,self.xDimension);
+			self.redraw();
+		});
 
 		this.initChart = function() {
-			this.svg = d3.select(this.container).append('svg')
+			this.svg = this.mainContainer.append('svg')
 				.attr('class','lineChart')
-				.attr('viewBox',(-this.margin.right)+' '+(-this.margin.top)+' '+
-								(this.parentRect.width)+' '+
-								(this.parentRect.height))
+				.attr('viewBox','0 0 '+this.internalWidth+' '+this.internalHeight)
 				.attr('preserveAspectRatio','none')
 				.attr('width','100%')
 				.attr('height','100%');
-
-			/** @type {Axis} The axis for the coordinate system */
-			this.svg.append("g")
-				.call(this.xaxis);
-
-			this.svg.append("g")
-				.call(this.yaxis);
 
 			this.path = this.svg.append("g")
 				.attr("fill", "none")
@@ -203,38 +180,87 @@
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
 				.selectAll("path")
-				.data(testData.series)
+				.data(this.plotData.series)
 				.join("path")
 				.style("mix-blend-mode", "multiply")
 				.attr("d", d => this.chartline(d.values));
 
-				//this.svg.call(this.hover, this.path);
-				this.svg.style("position", "relative");
+			//this.svg.call(this.hover, this.path);
+			this.svg.style("position", "relative");
 
-				this.svg
-				.on('mousemove', function(d) {
-					self.dispatch.call('mousemove',self,null,d3.event);
-				})
-				.on('mouseenter', function(d) {
-					self.dispatch.call('mouseenter',self,null,d3.event);
-				})
-				.on('mouseleave', function(d) {
-					self.dispatch.call('mouseleave',self,null,d3.event);
-				})
+			this.svg
+			.on('mousemove', function(d) {
+				self.dispatch.call('mousemove',self,null,d3.event);
+			})
+			.on('mouseenter', function(d) {
+				self.dispatch.call('mouseenter',self,null,d3.event);
+			})
+			.on('mouseleave', function(d) {
+				self.dispatch.call('mouseleave',self,null,d3.event);
+			});
 
-				this.dot = this.svg.append("g")
-					.attr("display", "none");
+			this.dot = this.svg.append("g")
+				.attr("display", "none");
 
-				this.dot.append("circle")
-					.attr("r", 2.5);
+			this.dot.append("circle")
+				.attr("r", 2.5);
 
-				this.dot.append("text")
-					.style("font", "10px sans-serif")
-					.attr("text-anchor", "middle")
-					.attr("y", -8);
+			this.dot.append("text")
+				.style("font", "10px sans-serif")
+				.attr("text-anchor", "middle")
+				.attr("y", -8);
 
-  			return this.svg.node();
+  		return this.svg.node();
 		}
+
+		/***************************************
+		 * AXES
+		 ***************************************/
+
+		/** @type {d3.selection} The container for each axis */
+		this.x = d3.scaleLinear()
+			.domain(d3.extent(this.plotData.dates))
+			.range([this.axismargin.left,self.internalWidth - this.axismargin.right]);
+
+		this.y = d3.scaleLinear()
+			.domain([0, d3.max(this.plotData.series, d => d3.max(d.values))]).nice()
+			.range([self.internalHeight - this.axismargin.bottom,this.axismargin.top]);
+
+		//x
+		this.xAxisContainer = d3.select(this.container).append('svg')
+			.classed('axisContainer x',true)
+			.style('position','absolute')
+			.style('width',this.internalWidth+'px')
+			.style('height',25+'px')
+			.style('top',this.margin.top+this.internalHeight+'px')
+			.style('left',this.margin.left+'px');
+
+		//y
+		this.yAxisContainer = d3.select(this.container).append('svg')
+			.classed('axisContainer y',true)
+			.style('position','absolute')
+			.style('width',50+'px')
+			.style('height',this.internalHeight+'px')
+			.style('left',(this.margin.left-50)+'px')
+			.style('top',this.margin.top+'px');
+
+		//Add axis to each axis container
+		//x
+		this.xAxisContainer.append('g')
+			.classed('axis',true)
+			.call(d3.axisBottom().scale(this.x));
+		//y
+		this.yAxisContainer.append('g')
+			.classed('axis',true)
+			.attr('transform','translate(50)')
+			.call(d3.axisLeft().scale(this.y));
+
+		this.axislineWidth = parseInt(getComputedStyle(
+			document.querySelector('.CINEMA_COMPONENT.MULTILINE_PLOT .axis line'))
+			.getPropertyValue('stroke-width'), 10);
+
+		this.xAxisContainer.style('top',this.margin.top+this.internalHeight+this.axislineWidth+'px');
+		this.yAxisContainer.style('left', (this.margin.left - 50 - this.axislineWidth) +'px');
 
 		/** @type {d3.selection (svg)} The SVG element containing all the content of the component */
 		this.chart = this.initChart();
@@ -249,10 +275,39 @@
 	 * Updates the sizing and scaling of all parts of the chart and redraws
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.updateSize = function() {
-		var self = this;
-
 		//Call super (will recalculate size)
 		CINEMA_COMPONENTS.Component.prototype.updateSize.call(this);
+
+		if(this.internalHeight > 100){
+			//update mainContainer size
+			this.mainContainer
+				.style('width',this.internalWidth+'px')
+				.style('height',this.internalHeight+'px');
+
+			this.svg.attr('viewBox','0 0 '+this.internalWidth+' '+this.internalHeight);
+
+				//Rescale
+			this.x.range([this.axismargin.left, this.internalWidth - this.axismargin.right]);
+			this.y.range([this.internalHeight - this.axismargin.bottom, this.axismargin.top]);
+
+			this.xAxisContainer
+				.style('width',this.internalWidth+'px')
+				.style('top',this.margin.top+this.internalHeight+this.axislineWidth+'px')
+				.select('.axis')
+					.call(d3.axisBottom().scale(this.x));
+
+			this.yAxisContainer
+				.style('height',this.internalHeight+'px')
+				.select('.axis')
+					.call(d3.axisLeft().scale(this.y));
+
+			this.chartline
+				.x((d, i) => this.x(this.plotData.dates[i]))
+				.y(d => this.y(d))
+
+			this.path
+				.attr("d", d => this.chartline(d.values));
+		}
 	};
 
 	CINEMA_COMPONENTS.LineChart.prototype.setSelection = function(selection) {
@@ -261,16 +316,17 @@
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.moved = function(eventdata) {
+		var self = this;
 		eventdata.preventDefault();
-		const ym = this.yscale.invert(eventdata.layerY);
-		const xm = this.xscale.invert(eventdata.layerX);
-		const i1 = d3.bisectLeft(testData.dates, xm, 1);
-		const i0 = i1 - 1;
-		const i = xm - testData.dates[i0] > testData.dates[i1] - xm ? i1 : i0;
-		const s = testData.series.reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
+		var ym = this.y.invert(eventdata.layerY);
+		var xm = this.x.invert(eventdata.layerX);
+		var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
+		var i0 = i1 - 1;
+		var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
+		var s = this.plotData.series.reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
 		this.path.attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
-		this.dot.attr("transform", `translate(${this.xscale(testData.dates[i])},${this.yscale(s.values[i])})`);
-		this.dot.select("text").text(s.name);
+		this.dot.attr("transform", `translate(${self.x(self.plotData.dates[i])},${self.y(s.values[i])})`);
+		this.dot.attr("overflow", "visible").select("text").text(s.name);
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.entered = function() {
@@ -289,8 +345,7 @@
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.updateData = function() {
 		var self = this;
-
-		this.redraw();
+		self.prepareData();
 	};
 
 	/**
@@ -298,6 +353,110 @@
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.redraw = function() {
 		var self = this;
+
+		console.log(self.plotData);
+
+		self.x
+			.domain(d3.extent(self.plotData.dates))
+			.range([self.axismargin.left, self.internalWidth - self.axismargin.right]);
+
+		self.y
+			.domain([0, d3.max(self.plotData.series, d => d3.max(d.values))]).nice()
+			.range([self.internalHeight - self.axismargin.bottom, self.axismargin.top]);
+
+		self.xAxisContainer
+			.select('.axis')
+				.call(d3.axisBottom().scale(self.x));
+
+		self.yAxisContainer
+			.select('.axis')
+				.call(d3.axisLeft().scale(self.y));
+
+		self.chartline
+			.x((d, i) => self.x(self.plotData.dates[i]))
+			.y(d => self.y(d));
+
+		self.path
+			.data(this.plotData.series)
+			.attr("d", d => self.chartline(d.values));
+	};
+
+	CINEMA_COMPONENTS.LineChart.prototype.prepareData = function() {
+		var self = this;
+		//Retrieve all uncertainty dimensions
+		var uncertaintyDims = [];
+		for(var i=0, len=this.dimensions.length; i < len; i++)
+			if(
+			this.dimensions[i].startsWith("u_min_") ||
+			this.dimensions[i].startsWith("u_avg_") ||
+			this.dimensions[i].startsWith("u_max_"))
+				uncertaintyDims.push(this.dimensions[i]);
+
+		//Retrieve all possible values of the current dimension
+		var dataDates = [];
+		this.db.data.forEach(function(value) {
+			if(!containedInArray.call(dataDates, value[self.xDimension]))
+				dataDates.push(value[self.xDimension]);
+		});
+		dataDates.sort(function(a, b){return a-b});
+
+		//Create data template
+		var dataSeries = [];
+		uncertaintyDims.forEach(function(value) {
+			dataSeries.push({
+				name: value,
+				values : Array(dataDates.length).fill(0),
+				occurences : Array(dataDates.length).fill(0)
+			});
+		});
+
+		//Fill with data values
+		this.db.data.forEach(function(dataRow) {
+			const currentIndex = dataDates.indexOf(dataRow[self.xDimension]);
+			dataSeries.forEach(function(dataSeriesObject) {
+				dataSeriesObject.values[currentIndex] += parseFloat(dataRow[dataSeriesObject.name]);
+				dataSeriesObject.occurences[currentIndex] += 1;
+			});
+		});
+
+		//Divide by occurences to retrieve the average
+		dataSeries.forEach(function(dataSeriesObject, indexObject) {
+			dataSeriesObject.values.forEach(function(dataValue, index) {
+				dataSeries[indexObject].values[index] = dataValue / dataSeriesObject.occurences[index];
+			});
+		});
+
+		//Calculate average uncertainty
+		var averageUncertainty = Array(dataDates.length).fill(0);
+		var count = 0;
+
+		dataSeries.forEach(function(dataSeriesObject, indexObject) {
+			dataSeriesObject.values.forEach(function(value, index) {
+				averageUncertainty[index] += value;
+			});
+			count += 1;
+		});
+
+		averageUncertainty.forEach(function(value, index) {
+			averageUncertainty[index] = value / count;
+		});
+
+		dataSeries.push({
+			name: "Average Uncertainty",
+			values : averageUncertainty,
+			occurences : count
+		});
+
+		//Convert dates to numbers
+		dataDates.forEach(function(value, index) {
+			dataDates[index] = parseInt(value, 10);
+		});
+
+		//Combine the data
+		this.plotData = {
+			series: dataSeries,
+			dates: dataDates
+		};
 	};
 
 })();
