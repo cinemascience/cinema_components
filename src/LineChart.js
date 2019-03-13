@@ -67,7 +67,7 @@
 	//Allowed prefixes for uncertainty
 	const allowedUPrefixes = ["u_min_","u_avg_","u_max_","u_97_","u_03_"];
 
-	const hasAllowedUPrefix = function(dimension) {
+	const startsWithUPrefix = function(dimension) {
 		for(i = 0; i < allowedUPrefixes.length; i++)
 			if(dimension.startsWith(allowedUPrefixes[i]))
 				return true;
@@ -82,7 +82,7 @@
 		 ***************************************/
 
 		/** @type {CINEMA_COMPONENTS.Margin} Override default margin */
-		this.margin = new CINEMA_COMPONENTS.Margin(20,30,50,40);
+		this.margin = new CINEMA_COMPONENTS.Margin(20,30,50,170);
 		this.axismargin = new CINEMA_COMPONENTS.Margin(15,15,15,15);
 
 		//call super-constructor
@@ -144,16 +144,11 @@
 		//Get all non uncertainty and non file dimensions
 		this.validDim = [];
 		for(var i=0, len=this.dimensions.length; i < len; i++)
-			if(!(
-			this.dimensions[i].startsWith("u_min_") ||
-			this.dimensions[i].startsWith("u_avg_") ||
-			this.dimensions[i].startsWith("u_max_") ||
-			this.dimensions[i].startsWith("FILE")
-			))
+			if(!(startsWithUPrefix(this.dimensions[i]) || this.dimensions[i].startsWith("FILE")))
 				this.validDim.push(this.dimensions[i]);
 
 		this.xSelect = d3.select(this.container).append('select')
-			.classed('dimensionSelect x',true)
+			.classed('dimensionSelect x', true)
 			.style('position','absolute')
 			.node();
 
@@ -172,8 +167,50 @@
 			self.xAxisContainer.select('.axis')
 				.call(d3.axisBottom().scale(self.x));
 			self.dispatch.call('xchanged',self,self.xDimension);
+			self.updateLineVisibility();
 			self.redraw();
 		});
+
+		// Checkboxes on y-axis
+		this.updateLineVisibility = function() {
+			d3.selectAll(".lineSelectCheckbox").each(function(d) {
+				const cb = d3.select(this);
+				if(cb.property("checked"))
+					self.setLineVisibility(cb.property("value"), true);
+				else
+					self.setLineVisibility(cb.property("value"), false);
+			});
+			self.redraw();
+		}
+
+		this.ySelectTable = d3.select(this.container)
+			.append('table')
+				.classed("lineSelect y", true)
+				.property("border","1px");
+
+		this.yTableRows = this.ySelectTable.selectAll('tr')
+			.classed("lineSelectRow y", true)
+			.data(self.plotData.series)
+			.enter().append('tr');
+
+		this.yTableRows.selectAll('td')
+			.data((d) => [d])
+			.enter()
+			.append('td')
+			.append("input")
+				.classed("lineSelectCheckbox", true)
+				.attr("checked", true)
+				.attr("type", "checkbox")
+				.attr("id", function(d,i) { return 'a'+i; })
+				.attr("value", (d) => d.name)
+				.on("change", self.updateLineVisibility);
+				//.text(function(d, i) {console.log(d); return d.name;})
+
+		this.yTableRows.selectAll("td")
+			.data((d) => [d])
+			.append("text")
+				.classed("lineSelect checkbox", true)
+				.text((d) => d.name);
 
 		this.initChart = function() {
 			this.svg = this.mainContainer.append('svg')
@@ -189,11 +226,14 @@
 				.attr("stroke-width", 1.5)
 				.attr("stroke-linejoin", "round")
 				.attr("stroke-linecap", "round")
-				.selectAll("path")
+
+			this.path.selectAll("path")
 				.data(this.plotData.series.filter(entry => entry.show))
 				.join("path")
 				.style("mix-blend-mode", "multiply")
 				.attr("d", d => self.chartline(d.values));
+
+			console.log(this.path.selectAll("path"));
 
 			this.svg.style("position", "relative");
 
@@ -323,7 +363,7 @@
 				.x((d, i) => this.x(this.plotData.dates[i]))
 				.y(d => this.y(d))
 
-			this.path
+			this.path.selectAll("path")
 				.attr("d", d => self.chartline(d.values));
 		}
 	};
@@ -342,19 +382,19 @@
 		var i0 = i1 - 1;
 		var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
 		var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
-		this.path.attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
+		this.path.selectAll("path").attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
 		this.dot.attr("transform", `translate(${self.x(self.plotData.dates[i])},${self.y(s.values[i])})`);
 		this.dot.select("#dot_name_text").attr("overflow", "visible").text(s.name);
 		this.dot.select("#dot_number_text").attr("overflow", "visible").text(s.values[i].toFixed(2));
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.entered = function() {
-		this.path.style("mix-blend-mode", null).attr("stroke", "#ddd");
+		this.path.selectAll("path").style("mix-blend-mode", null).attr("stroke", "#ddd");
 		this.dot.attr("display", null);
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.left = function() {
-		this.path.style("mix-blend-mode", "multiply").attr("stroke", null);
+		this.path.selectAll("path").style("mix-blend-mode", "multiply").attr("stroke", null);
 		this.dot.attr("display", "none");
 	}
 
@@ -378,7 +418,10 @@
 			.range([self.axismargin.left, self.internalWidth - self.axismargin.right]);
 
 		self.y
-			.domain([0, d3.max(self.plotData.series, d => d3.max(d.values))]).nice()
+			.domain([
+				d3.min(self.plotData.series.filter(entry => entry.show), d => d3.min(d.values)),
+				d3.max(self.plotData.series.filter(entry => entry.show), d => d3.max(d.values))
+			 	]).nice()
 			.range([self.internalHeight - self.axismargin.bottom, self.axismargin.top]);
 
 		self.xAxisContainer
@@ -393,9 +436,30 @@
 			.x((d, i) => self.x(self.plotData.dates[i]))
 			.y(d => self.y(d));
 
-		self.path
-			.data(this.plotData.series.filter(entry => entry.show))
+		var updatePaths = self.path.selectAll("path")
+			.data(this.plotData.series.filter(entry => entry.show));
+
+		updatePaths.enter()
+			.append('path')
+		.merge(updatePaths)
+			.join("path")
+			.style("mix-blend-mode", "multiply")
 			.attr("d", d => self.chartline(d.values));
+
+		updatePaths.exit()
+			.remove();
+
+		//this.path = this.svg.append("g")
+		//	.attr("fill", "none")
+		//	.attr("stroke", "steelblue")
+		//	.attr("stroke-width", 1.5)
+		//	.attr("stroke-linejoin", "round")
+		//	.attr("stroke-linecap", "round")
+		//	.selectAll("path")
+		//	.data(this.plotData.series.filter(entry => entry.show))
+		//	.join("path")
+		//	.style("mix-blend-mode", "multiply")
+		//	.attr("d", d => self.chartline(d.values));
 	};
 
 	CINEMA_COMPONENTS.LineChart.prototype.prepareData = function() {
@@ -403,12 +467,7 @@
 		//Retrieve all uncertainty dimensions
 		var uncertaintyDims = [];
 		for(var i=0, len=this.dimensions.length; i < len; i++)
-			if(
-			this.dimensions[i].startsWith("u_min_") ||
-			this.dimensions[i].startsWith("u_avg_") ||
-			this.dimensions[i].startsWith("u_max_") ||
-			this.dimensions[i].startsWith("u_97_") ||
-			this.dimensions[i].startsWith("u_03_"))
+			if(startsWithUPrefix(this.dimensions[i]))
 				uncertaintyDims.push(this.dimensions[i]);
 
 		//Retrieve all possible values of the current dimension
@@ -485,5 +544,25 @@
 			dates: dataDates
 		};
 	};
+
+	CINEMA_COMPONENTS.LineChart.prototype.setLineVisibility = function(name, isShown) {
+		var self = this;
+		for(var i = 0; i < this.plotData.series.length; i++) {
+			if(self.plotData.series[i].name === name) {
+				self.plotData.series[i].show = isShown;
+				break;
+			}
+		}
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function(name, isShown) {
+		var self = this;
+		var count = 0;
+		this.plotData.series.forEach(function(entry) {
+			if(entry.show === true)
+				count += 1;
+		})
+		return count;
+	}
 
 })();
