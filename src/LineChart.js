@@ -64,18 +64,22 @@
 		return indexOf.call(this, needle) > -1;
 	};
 
-	//Allowed prefixes for uncertainty
-	const allowedUPrefixes = ["u_min_","u_avg_","u_max_","u_97_","u_03_"];
-
-	const startsWithUPrefix = function(dimension) {
-		for(i = 0; i < allowedUPrefixes.length; i++)
-			if(dimension.startsWith(allowedUPrefixes[i]))
-				return true;
-		return false;
-	}
-
 	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex) {
 		var self = this;
+
+		//Allowed prefixes for uncertainty
+		this.allowedUPrefixes = ["u_min_","u_avg_","u_max_","u_97_","u_03_"];
+
+		this.allowedUPrefixesRegEx = "/";
+		self.allowedUPrefixes.forEach(function(value,index) {
+			if(index === 0)
+				self.allowedUPrefixesRegEx += value;
+			else
+				self.allowedUPrefixesRegEx += "|" + value;
+		});
+		this.allowedUPrefixesRegEx = new RegExp(self.allowedUPrefixesRegEx + "/gi");
+
+		console.log(self.allowedUPrefixesRegEx);
 
 		/***************************************
 		 * SIZING
@@ -95,9 +99,12 @@
 
 		/** @type {string} The currently selected dimensions for each axis*/
 		this.xDimension = this.dimensions[0];
+		this.currentlySelectedPoint = {};
 
 		this.plotData = {};
 		this.prepareData();
+
+		console.log(this.db);
 
 		/***************************************
 		 * EVENTS
@@ -143,9 +150,10 @@
 		/** @type {DOM (select)} The select elements for selecting the dimension for x axis */
 		//Get all non uncertainty and non file dimensions
 		this.validDim = [];
-		for(var i=0, len=this.dimensions.length; i < len; i++)
-			if(!(startsWithUPrefix(this.dimensions[i]) || this.dimensions[i].startsWith("FILE")))
-				this.validDim.push(this.dimensions[i]);
+		for(var i=0, len=self.dimensions.length; i < len; i++) {
+			if(!(self.startsWithUPrefix(self.dimensions[i]) || self.dimensions[i].startsWith("FILE")))
+				self.validDim.push(self.dimensions[i]);
+		}
 
 		this.xSelect = d3.select(this.container).append('select')
 			.classed('dimensionSelect x', true)
@@ -204,7 +212,6 @@
 				.attr("id", function(d,i) { return 'a'+i; })
 				.attr("value", (d) => d.name)
 				.on("change", self.updateLineVisibility);
-				//.text(function(d, i) {console.log(d); return d.name;})
 
 		this.yTableRows.selectAll("td")
 			.data((d) => [d])
@@ -232,8 +239,6 @@
 				.join("path")
 				.style("mix-blend-mode", "multiply")
 				.attr("d", d => self.chartline(d.values));
-
-			console.log(this.path.selectAll("path"));
 
 			this.svg.style("position", "relative");
 
@@ -374,33 +379,44 @@
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.moved = function(eventdata) {
-		var self = this;
-		eventdata.preventDefault();
-		var ym = this.y.invert(eventdata.layerY);
-		var xm = this.x.invert(eventdata.layerX);
-		var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
-		var i0 = i1 - 1;
-		var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
-		var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
-		this.path.selectAll("path").attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
-		this.dot.attr("transform", `translate(${self.x(self.plotData.dates[i])},${self.y(s.values[i])})`);
-		this.dot.select("#dot_name_text").attr("overflow", "visible").text(s.name);
-		this.dot.select("#dot_number_text").attr("overflow", "visible").text(s.values[i].toFixed(2));
+		if(this.getVisibileLineCount()) {
+			var self = this;
+			eventdata.preventDefault();
+			var ym = this.y.invert(eventdata.layerY);
+			var xm = this.x.invert(eventdata.layerX);
+			var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
+			var i0 = i1 - 1;
+			var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
+			var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
+			this.path.selectAll("path").attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
+			this.dot.attr("transform", `translate(${self.x(self.plotData.dates[i])},${self.y(s.values[i])})`);
+			this.dot.select("#dot_name_text").attr("overflow", "visible").text(s.name);
+			this.dot.select("#dot_number_text").attr("overflow", "visible").text(s.values[i].toFixed(2));
+			this.currentlySelectedPoint = {
+				date: self.plotData.dates[i],
+				value: s.values[i],
+				umeasurename: s.name
+			}
+		}
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.entered = function() {
-		this.path.selectAll("path").style("mix-blend-mode", null).attr("stroke", "#ddd");
-		this.dot.attr("display", null);
+		if(this.getVisibileLineCount()) {
+			this.path.selectAll("path").style("mix-blend-mode", null).attr("stroke", "#ddd");
+			this.dot.attr("display", null);
+		}
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.left = function() {
-		this.path.selectAll("path").style("mix-blend-mode", "multiply").attr("stroke", null);
-		this.dot.attr("display", "none");
+		if(this.getVisibileLineCount()) {
+			this.path.selectAll("path").style("mix-blend-mode", "multiply").attr("stroke", null);
+			this.dot.attr("display", "none");
+		}
+		this.getPicturePathsForPoint();
 	}
 
 	/**
 	 * Should be called whenever the data in the associated database changes.
-	 * Will update scales, axes and selection to fit the new data.
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.updateData = function() {
 		var self = this;
@@ -408,7 +424,7 @@
 	};
 
 	/**
-	 * Redraw the glyph path
+	 * Redraw the chart path
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.redraw = function() {
 		var self = this;
@@ -448,18 +464,6 @@
 
 		updatePaths.exit()
 			.remove();
-
-		//this.path = this.svg.append("g")
-		//	.attr("fill", "none")
-		//	.attr("stroke", "steelblue")
-		//	.attr("stroke-width", 1.5)
-		//	.attr("stroke-linejoin", "round")
-		//	.attr("stroke-linecap", "round")
-		//	.selectAll("path")
-		//	.data(this.plotData.series.filter(entry => entry.show))
-		//	.join("path")
-		//	.style("mix-blend-mode", "multiply")
-		//	.attr("d", d => self.chartline(d.values));
 	};
 
 	CINEMA_COMPONENTS.LineChart.prototype.prepareData = function() {
@@ -467,7 +471,7 @@
 		//Retrieve all uncertainty dimensions
 		var uncertaintyDims = [];
 		for(var i=0, len=this.dimensions.length; i < len; i++)
-			if(startsWithUPrefix(this.dimensions[i]))
+			if(self.startsWithUPrefix(this.dimensions[i]))
 				uncertaintyDims.push(this.dimensions[i]);
 
 		//Retrieve all possible values of the current dimension
@@ -505,7 +509,8 @@
 			});
 		});
 
-		allowedUPrefixes.forEach(function(uncertaintyDim, index) {
+		//Add summed uncertainty measures for each dimension type
+		this.allowedUPrefixes.forEach(function(uncertaintyDim, index) {
 			var averageUncertainty = Array(dataDates.length).fill(0);
 			var count = 0;
 
@@ -556,13 +561,36 @@
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function(name, isShown) {
+		return this.plotData.series.filter(entry => entry.show).length;
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.getPicturePathsForPoint = function() {
 		var self = this;
-		var count = 0;
-		this.plotData.series.forEach(function(entry) {
-			if(entry.show === true)
-				count += 1;
-		})
-		return count;
+		console.log(self.currentlySelectedPoint);
+		if(self.currentlySelectedPoint === {})
+			return([]);
+		else {
+			var imagePaths = [];
+			self.db.data.forEach(function(dataRow) {
+				if(dataRow[self.xDimension] == self.currentlySelectedPoint.date) {
+					for (var key in dataRow) {
+						if(key.startsWith("FILE_"))
+							if(key.replace(/FILE_/gi,"") === self.currentlySelectedPoint.umeasurename.replace(self.allowedUPrefixesRegEx,""))
+								imagePaths.push(dataRow[key]);
+					}
+				}
+			});
+			console.log(imagePaths);
+			return imagePaths;
+		}
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.startsWithUPrefix = function(dimension) {
+		for(i = 0; i < this.allowedUPrefixes.length; i++) {
+			if(dimension.startsWith(this.allowedUPrefixes[i]))
+				return true;
+		}
+		return false;
 	}
 
 })();
