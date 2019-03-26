@@ -79,8 +79,6 @@
 		});
 		this.allowedUPrefixesRegEx = new RegExp(self.allowedUPrefixesRegEx + "/gi");
 
-		console.log(self.allowedUPrefixesRegEx);
-
 		/***************************************
 		 * SIZING
 		 ***************************************/
@@ -104,8 +102,6 @@
 		this.plotData = {};
 		this.prepareData();
 
-		console.log(this.db);
-
 		/***************************************
 		 * EVENTS
 		 ***************************************/
@@ -119,7 +115,16 @@
 		 * 'ychanged': Triggered when the y dimension being viewed is changed
 		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("mouseover","mousemove","mouseenter","mouseleave","xchanged");
+		this.dispatch = d3.dispatch("mouseover","mousemove","mouseenter","mouseleave","mousedown","mouseup","xchanged");
+
+		/***************************************
+		 * DRAGGING
+		 ***************************************/
+
+		this.dragging = false;
+		this.dragStartX = 0;
+		this.dragStartData = {};
+		this.dragResult = {};
 
 		/***************************************
 		 * CHART LINES
@@ -128,7 +133,7 @@
 		this.chartline = d3.line()
 			.defined(d => !isNaN(d))
 			.x((d, i) => this.x(this.plotData.dates[i]))
-			.y(d => this.y(d))
+			.y(d => this.y(d));
 
 		/***************************************
 		 * DOM Content
@@ -243,14 +248,20 @@
 			this.svg.style("position", "relative");
 
 			this.svg
-			.on('mousemove', function(d) {
+			.on('mousemove', function() {
 				self.dispatch.call('mousemove',self,null,d3.event);
 			})
-			.on('mouseenter', function(d) {
+			.on('mouseenter', function() {
 				self.dispatch.call('mouseenter',self,null,d3.event);
 			})
-			.on('mouseleave', function(d) {
+			.on('mouseleave', function() {
 				self.dispatch.call('mouseleave',self,null,d3.event);
+			})
+			.on("mousedown", function() {
+				self.dispatch.call('mousedown',self,null,d3.event);
+			})
+			.on("mouseup", function() {
+				self.dispatch.call('mouseup',self,null,d3.event);
 			});
 
 			this.dot = this.svg.append("g")
@@ -379,24 +390,28 @@
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.moved = function(eventdata) {
+		var self = this;
 		if(this.getVisibileLineCount()) {
-			var self = this;
 			eventdata.preventDefault();
-			var ym = this.y.invert(eventdata.layerY);
-			var xm = this.x.invert(eventdata.layerX);
-			var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
-			var i0 = i1 - 1;
-			var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
-			var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
-			this.path.selectAll("path").attr("stroke", d => d === s ? null : "#ddd").filter(d => d === s).raise();
-			this.dot.attr("transform", `translate(${self.x(self.plotData.dates[i])},${self.y(s.values[i])})`);
-			this.dot.select("#dot_name_text").attr("overflow", "visible").text(s.name);
-			this.dot.select("#dot_number_text").attr("overflow", "visible").text(s.values[i].toFixed(2));
-			this.currentlySelectedPoint = {
-				date: self.plotData.dates[i],
-				value: s.values[i],
-				umeasurename: s.name
+			var currentDatapoint = this.getClickEventDataPoint(eventdata);
+
+			if(this.dragging) {
+				if(self.dragStartX > eventdata.layerX){
+					self.svg.select("rect")
+						.attr("x", eventdata.layerX)
+						.attr("width", self.dragStartX - eventdata.layerX);
+				}
+				else {
+					self.svg.select("rect")
+						.attr("width", eventdata.layerX - self.dragStartX);
+
+				}
 			}
+
+			this.path.selectAll("path").attr("stroke", d => d === currentDatapoint.series ? null : "#ddd").filter(d => d === currentDatapoint.series).raise();
+			this.dot.attr("transform", `translate(${self.x(currentDatapoint.date)},${self.y(currentDatapoint.value)})`);
+			this.dot.select("#dot_name_text").attr("overflow", "visible").text(currentDatapoint.umeasurename);
+			this.dot.select("#dot_number_text").attr("overflow", "visible").text(currentDatapoint.value.toFixed(2));
 		}
 	}
 
@@ -408,11 +423,97 @@
 	}
 
 	CINEMA_COMPONENTS.LineChart.prototype.left = function() {
+		var self = this;
 		if(this.getVisibileLineCount()) {
 			this.path.selectAll("path").style("mix-blend-mode", "multiply").attr("stroke", null);
 			this.dot.attr("display", "none");
 		}
-		this.getPicturePathsForPoint();
+		//prevent draging to continue
+		if(self.dragging) {
+			self.dragging = false;
+			self.svg.selectAll("rect")
+				.transition()
+					.duration(100)
+					.attr("stroke-width", 10)
+					.attr("stroke", "red")
+				.delay(200)
+				.transition()
+					.duration(1000)
+					.attr("opacity", 0.0)
+					.remove();
+		}
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.down = function(eventdata) {
+		var self = this;
+		eventdata.preventDefault();
+		self.dragging = true;
+		self.dragStartData = this.getClickEventDataPoint(eventdata);
+		self.dragStartX = eventdata.layerX;
+
+		var rect = this.svg.append("rect")
+			.attr("x", self.dragStartX)
+			.attr("y", 0)
+			.attr("width", 1)
+			.attr("height", self.svg.style("height"))
+			.attr("opacity", 0.5)
+			.attr("fill", "yellow");
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.up = function(eventdata) {
+		var self = this;
+		self.dragging = false;
+
+		var dragEndData = this.getClickEventDataPoint(eventdata);
+
+		self.dragResult = {
+			dimension : self.xDimension,
+			startDate: self.dragStartData.date < dragEndData.date ? self.dragStartData.date : dragEndData.date,
+			endDate: self.dragStartData.date > dragEndData.date ? self.dragStartData.date : dragEndData.date
+		}
+
+		var adjustedStartX = self.x(self.dragResult.startDate);
+		var adjustedEndX = self.x(self.dragResult.endDate);
+
+		if(adjustedStartX === adjustedEndX) {
+			adjustedStartX -= 1;
+			adjustedEndX += 1;
+		}
+
+		self.svg.selectAll("rect")
+			.transition()
+			.duration(500)
+				.attr("x", adjustedStartX)
+				.attr("width", adjustedEndX - adjustedStartX)
+			.delay(50)
+			.transition()
+				.duration(100)
+				.attr("stroke-width", 10)
+				.attr("stroke", "green")
+			.delay(200)
+			.transition()
+				.duration(1000)
+				.attr("opacity", 0.0)
+				.remove();
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.getClickEventDataPoint = function(eventdata) {
+		var self = this;
+		if(this.getVisibileLineCount()) {
+			var ym = this.y.invert(eventdata.layerY);
+			var xm = this.x.invert(eventdata.layerX);
+			var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
+			var i0 = i1 - 1;
+			var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
+			var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
+			this.currentlySelectedPoint = {
+				date: self.plotData.dates[i],
+				value: s.values[i],
+				umeasurename: s.name,
+				series: s
+			}
+			return this.currentlySelectedPoint;
+		}
 	}
 
 	/**
@@ -421,6 +522,8 @@
 	CINEMA_COMPONENTS.LineChart.prototype.updateData = function() {
 		var self = this;
 		self.prepareData();
+		self.updateSize();
+		self.redraw();
 	};
 
 	/**
@@ -497,8 +600,10 @@
 		this.db.data.forEach(function(dataRow) {
 			const currentIndex = dataDates.indexOf(dataRow[self.xDimension]);
 			dataSeries.forEach(function(dataSeriesObject) {
-				dataSeriesObject.values[currentIndex] += parseFloat(dataRow[dataSeriesObject.name]);
-				dataSeriesObject.occurences[currentIndex] += 1;
+				if(!isNaN(dataRow[dataSeriesObject.name])) {
+					dataSeriesObject.values[currentIndex] += parseFloat(dataRow[dataSeriesObject.name]);
+					dataSeriesObject.occurences[currentIndex] += 1;
+				}
 			});
 		});
 
@@ -566,7 +671,7 @@
 
 	CINEMA_COMPONENTS.LineChart.prototype.getPicturePathsForPoint = function() {
 		var self = this;
-		console.log(self.currentlySelectedPoint);
+
 		if(self.currentlySelectedPoint === {})
 			return([]);
 		else {
@@ -580,7 +685,6 @@
 					}
 				}
 			});
-			console.log(imagePaths);
 			return imagePaths;
 		}
 	}
