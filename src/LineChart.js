@@ -522,7 +522,6 @@
 	CINEMA_COMPONENTS.LineChart.prototype.updateData = function() {
 		var self = this;
 		self.prepareData();
-		self.updateSize();
 		self.redraw();
 	};
 
