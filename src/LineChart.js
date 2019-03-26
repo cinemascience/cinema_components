@@ -64,6 +64,14 @@
 		return indexOf.call(this, needle) > -1;
 	};
 
+	//Check if numberString is in scientifc notation
+	var isScientificNotation = function(numberString) {
+		if(typeof numberString === 'string' || numberString instanceof String)
+			if(numberString.includes("e") || numberString.includes("E"))
+				return true;
+		return false;
+	}
+
 	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex) {
 		var self = this;
 
@@ -175,7 +183,7 @@
 		d3.select(this.xSelect).on('input',function() {
 			self.xDimension = this.value;
 			self.updateData();
-			self.x = d3.scaleLinear()
+			self.x = (self.db.isStringDimension(self.xDimension) ? d3.scalePoint() : d3.scaleLinear())
 				.domain(d3.extent(self.plotData.dates));
 			self.xAxisContainer.select('.axis')
 				.call(d3.axisBottom().scale(self.x));
@@ -290,7 +298,7 @@
 		 ***************************************/
 
 		/** @type {d3.selection} The container for each axis */
-		this.x = d3.scaleLinear()
+		this.x = (this.db.isStringDimension(this.xDimension) ? d3.scalePoint() : d3.scaleLinear())
 			.domain(d3.extent(this.plotData.dates))
 			.range([this.axismargin.left,self.internalWidth - this.axismargin.right]);
 
@@ -579,8 +587,17 @@
 		//Retrieve all possible values of the current dimension
 		var dataDates = [];
 		this.db.data.forEach(function(value) {
-			if(!containedInArray.call(dataDates, value[self.xDimension]))
-				dataDates.push(value[self.xDimension]);
+			//Check for scientific notation
+			if(isScientificNotation(value[self.xDimension])) {
+				if(!containedInArray.call(dataDates, Number(value[self.xDimension]))) {
+					dataDates.push(Number(value[self.xDimension]));
+				}
+			}
+			else {
+				if(!containedInArray.call(dataDates, value[self.xDimension])) {
+					dataDates.push(value[self.xDimension]);
+				}
+			}
 		});
 		dataDates.sort(function(a, b){return a-b});
 
@@ -597,7 +614,13 @@
 
 		//Fill with data values
 		this.db.data.forEach(function(dataRow) {
-			const currentIndex = dataDates.indexOf(dataRow[self.xDimension]);
+			var currentIndex;
+			if(isScientificNotation(dataRow[self.xDimension])) {
+				currentIndex = dataDates.indexOf(Number(dataRow[self.xDimension]));
+			}
+			else {
+				currentIndex = dataDates.indexOf(dataRow[self.xDimension]);
+			}
 			dataSeries.forEach(function(dataSeriesObject) {
 				if(!isNaN(dataRow[dataSeriesObject.name])) {
 					dataSeriesObject.values[currentIndex] += parseFloat(dataRow[dataSeriesObject.name]);
