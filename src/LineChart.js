@@ -68,7 +68,7 @@
 	};
 
 	/** @type {RegExp} - Regular Expression to check for scientific notations */
-	const scientificNotationRegExp = new RegExp(/^(\d)+(e|E)(\+|-)(\d)+$/);
+	const scientificNotationRegExp = new RegExp(/^((\d)+|(\d+\.\d+))(e|E)(\+|-)(\d)+$/);
 
 	/**
 	 * Check if numberString is in scientifc notation
