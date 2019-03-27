@@ -2,7 +2,7 @@
 (function() {
 	/**
 	 * CINEMA_COMPONENTS
-	 * PCOORD
+	 * LineChart
 	 *
 	 * The LineChart Component for the CINEMA_COMPONENTS library.
 	 * It is a sublcass of Component
@@ -35,7 +35,10 @@
 	/** @type {boolean} - Flag to indicate that the LineChart module has been included */
 	CINEMA_COMPONENTS.LINECHART_INCLUDED = true;
 
-	//Retrieve if a value is contained in an array
+	/**
+	 * Retrieve if a value is contained in an array
+	 * @param {ANY} needle - Element to search for in Array
+	 */
 	var containedInArray = function(needle) {
 		//Per spec, the way to identify NaN is that it is not equal to itself
 		var findNaN = needle !== needle;
@@ -64,28 +67,32 @@
 		return indexOf.call(this, needle) > -1;
 	};
 
-	//Check if numberString is in scientifc notation
-	var isScientificNotation = function(numberString) {
+	/** @type {RegExp} - Regular Expression to check for scientific notations */
+	const scientificNotationRegExp = new RegExp(/(\d)+(e|E)(\+|-)(\d)/);
+
+	/**
+	 * Check if numberString is in scientifc notation
+	 * @param {String} numberString - String which might contain a scientific notation
+	 */
+	var isInScientificNotation = function(numberString) {
 		if(typeof numberString === 'string' || numberString instanceof String)
-			if(numberString.includes("e") || numberString.includes("E"))
+			if(scientificNotationRegExp.test(numberString))
 				return true;
 		return false;
 	}
 
+	/**
+	 * Abstract constructor for LineCart Components
+	 * Represents a component for displaying and interacting with a database on a multiple lines chart
+	 * @param {DOM} parent - The DOM object to build this component inside of
+	 * @param {CINEMA_COMPONENTS.Database} database - The database behind this component
+	 * @param {RegExp} filterRegex - A regex to determine which dimensions to NOT show on the component
+	 */
 	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex) {
 		var self = this;
 
 		//Allowed prefixes for uncertainty
 		this.allowedUPrefixes = ["u_min_","u_avg_","u_max_","u_97_","u_03_"];
-
-		this.allowedUPrefixesRegEx = "/";
-		self.allowedUPrefixes.forEach(function(value,index) {
-			if(index === 0)
-				self.allowedUPrefixesRegEx += value;
-			else
-				self.allowedUPrefixesRegEx += "|" + value;
-		});
-		this.allowedUPrefixesRegEx = new RegExp(self.allowedUPrefixesRegEx + "/gi");
 
 		/***************************************
 		 * SIZING
@@ -93,21 +100,27 @@
 
 		/** @type {CINEMA_COMPONENTS.Margin} Override default margin */
 		this.margin = new CINEMA_COMPONENTS.Margin(20,30,50,170);
+
+		/** @type {CINEMA_COMPONENTS.Margin} Margins of axis to the SVG plane */
 		this.axismargin = new CINEMA_COMPONENTS.Margin(15,15,15,15);
 
 		//call super-constructor
 		CINEMA_COMPONENTS.Component.call(this,parent,database,filterRegex);
-		//after size is calculate in the super-constructor, set radius and innerMargin
 
 		/***************************************
 		 * DATA
 		 ***************************************/
 
-		/** @type {string} The currently selected dimensions for each axis*/
+		/** @type {String} The currently selected dimensions for each axis*/
 		this.xDimension = this.dimensions[0];
+
+		/** @type {Object} Currently selected data point*/
 		this.currentlySelectedPoint = {};
 
+		/** @type {Object} Data to be shown by the plot*/
 		this.plotData = {};
+
+		//Prepare the plot data
 		this.prepareData();
 
 		/***************************************
@@ -115,41 +128,48 @@
 		 ***************************************/
 
 		/** @type {d3.dispatch} Hook for events on chart
-		 * Set handlers with on() function. Ex: this.dispatch.on('mouseover',handlerFunction(i))
-		 * 'mouseover': Triggered when a point is moused over.
-		 *     (called with the index of moused over data and a reference to the mouse event)
+		 * Set handlers with on() function. Ex: this.dispatch.on('mousemove',handlerFunction(i))
+		 * 'mousemove': Triggered when movinge mouse over the svg plane.
+		 *     (called with the index of moused move data and a reference to the mouse event)
+		 * 'mouseenter': Triggered when a mouse enters the svg plane.
+		 *     (called with the index of moused enter data and a reference to the mouse event)
+		 * 'mouseleave': Triggered when a mouse leaves the svg plane.
+		 *     (called with the index of mouse leave data and a reference to the mouse event)
+		 * 'mousedown': Triggered when the left mouse button is pushed down.
+		 *     (called with the index of mouse down data and a reference to the mouse event)
+		 * 'mouseup': Triggered when the left mouse button is released.
+		 *     (called with the index of mouse up data and a reference to the mouse event)
 		 * 'xchanged': Triggered when the x dimension being viewed is changed
 		 *     (called with the new dimension as an argument)
-		 * 'ychanged': Triggered when the y dimension being viewed is changed
-		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("mouseover","mousemove","mouseenter","mouseleave","mousedown","mouseup","xchanged");
+		this.dispatch = d3.dispatch("mousemove","mouseenter","mouseleave","mousedown","mouseup","xchanged");
 
 		/***************************************
 		 * DRAGGING
 		 ***************************************/
 
+		/** @type {boolean} Is left mouse button pushed down*/
 		this.dragging = false;
+
+		/** @type {int} svg x position where mouse left mouse button was pushed down*/
 		this.dragStartX = 0;
+
+		/** @type {Object} Save selected data when mouse button was pushed down*/
 		this.dragStartData = {};
+
+		/** @type {Object} Save start and end data if drag action */
 		this.dragResult = {};
-
-		/***************************************
-		 * CHART LINES
-		 ***************************************/
-
-		this.chartline = d3.line()
-			.defined(d => !isNaN(d))
-			.x((d, i) => this.x(this.plotData.dates[i]))
-			.y(d => this.y(d));
 
 		/***************************************
 		 * DOM Content
 		 ***************************************/
 
-		//Plot
+		 /** Main Container **/
+
+		//Give plot container a class
 		d3.select(this.container).classed('MULTILINE_PLOT',true);
 
+		//Add a div as main container to add other components later
 		this.mainContainer = d3.select(this.container).append('div')
 			.classed('mainContainer',true)
 			.style('position','absolute')
@@ -160,7 +180,8 @@
 			.style('width',this.internalWidth+'px')
 			.style('height',this.internalHeight+'px');
 
-		/** @type {DOM (select)} The select elements for selecting the dimension for x axis */
+		/** Dimension selection for x-axis **/
+
 		//Get all non uncertainty and non file dimensions
 		this.validDim = [];
 		for(var i=0, len=self.dimensions.length; i < len; i++) {
@@ -168,11 +189,13 @@
 				self.validDim.push(self.dimensions[i]);
 		}
 
+		//Add Dimension select option
 		this.xSelect = d3.select(this.container).append('select')
 			.classed('dimensionSelect x', true)
 			.style('position','absolute')
 			.node();
 
+		//Add all options
 		d3.select(this.xSelect).selectAll('option')
 			.data(this.validDim)
 			.enter().append('option')
@@ -180,6 +203,7 @@
 				.text(function(d){return d;});
 		d3.select(this.xSelect).node().value = this.xDimension;
 
+		//Define actions when a new Dimension is selected
 		d3.select(this.xSelect).on('input',function() {
 			self.xDimension = this.value;
 			self.updateData();
@@ -192,7 +216,9 @@
 			self.redraw();
 		});
 
-		// Checkboxes on y-axis
+		/** Checkboxtable for selecting uncertainty measures **/
+
+		//Function to toggle Checkboxes for uncertainty measures
 		this.updateLineVisibility = function() {
 			d3.selectAll(".lineSelectCheckbox").each(function(d) {
 				const cb = d3.select(this);
@@ -204,16 +230,19 @@
 			self.redraw();
 		}
 
+		//Table containing the checkboxes
 		this.ySelectTable = d3.select(this.container)
 			.append('table')
 				.classed("lineSelect y", true)
 				.property("border","1px");
 
+		//Rows in the checkbox table
 		this.yTableRows = this.ySelectTable.selectAll('tr')
 			.classed("lineSelectRow y", true)
 			.data(self.plotData.series)
 			.enter().append('tr');
 
+		//Add checkboxes to the table
 		this.yTableRows.selectAll('td')
 			.data((d) => [d])
 			.enter()
@@ -226,13 +255,19 @@
 				.attr("value", (d) => d.name)
 				.on("change", self.updateLineVisibility);
 
+		//Add text next to the checkboxes
 		this.yTableRows.selectAll("td")
 			.data((d) => [d])
 			.append("text")
 				.classed("lineSelect checkbox", true)
 				.text((d) => d.name);
 
+		/** SVG plane **/
+
 		this.initChart = function() {
+			/** SVG plane creation **/
+
+			//Create svg plane
 			this.svg = this.mainContainer.append('svg')
 				.attr('class','lineChart')
 				.attr('viewBox','0 0 '+this.internalWidth+' '+this.internalHeight)
@@ -240,21 +275,10 @@
 				.attr('width','100%')
 				.attr('height','100%');
 
-			this.path = this.svg.append("g")
-				.attr("fill", "none")
-				.attr("stroke", "steelblue")
-				.attr("stroke-width", 1.5)
-				.attr("stroke-linejoin", "round")
-				.attr("stroke-linecap", "round")
-
-			this.path.selectAll("path")
-				.data(this.plotData.series.filter(entry => entry.show))
-				.join("path")
-				.style("mix-blend-mode", "multiply")
-				.attr("d", d => self.chartline(d.values));
-
+			//set svg position
 			this.svg.style("position", "relative");
 
+			//Add interaction to the svg plane
 			this.svg
 			.on('mousemove', function() {
 				self.dispatch.call('mousemove',self,null,d3.event);
@@ -272,18 +296,47 @@
 				self.dispatch.call('mouseup',self,null,d3.event);
 			});
 
+			/** Draw paths **/
+
+			//Line to draw on svg plane, mapping data and indexes to lines
+			this.chartline = d3.line()
+				.defined(d => !isNaN(d))
+				.x((d, i) => this.x(this.plotData.dates[i]))
+				.y(d => this.y(d));
+
+			//Create all g elements for lines in the plot
+			this.path = this.svg.append("g")
+				.attr("fill", "none")
+				.attr("stroke", "steelblue")
+				.attr("stroke-width", 1.5)
+				.attr("stroke-linejoin", "round")
+				.attr("stroke-linecap", "round")
+
+			//Add all chartlines
+			this.path.selectAll("path")
+				.data(this.plotData.series.filter(entry => entry.show))
+				.join("path")
+				.style("mix-blend-mode", "multiply")
+				.attr("d", d => self.chartline(d.values));
+
+			/** Add dot/circle to show current data point **/
+
+			//create Dot g element to show currently selected data
 			this.dot = this.svg.append("g")
 				.attr("display", "none");
 
+			//Add the circle
 			this.dot.append("circle")
 				.attr("r", 2.5);
 
+			//Add text showing the uncertainty measure name
 			this.dot.append("text")
 				.attr("id", "dot_name_text")
 				.style("font", "10px sans-serif")
 				.attr("text-anchor", "middle")
 				.attr("y", -6);
 
+			//Add text showing the current value of the uncertainty measure
 			this.dot.append("text")
 				.attr("id", "dot_number_text")
 				.style("font", "10px sans-serif")
@@ -297,16 +350,19 @@
 		 * AXES
 		 ***************************************/
 
-		/** @type {d3.selection} The container for each axis */
+		/** @type {d3.scalePoint} - Scale for x axis on chart
+		 * Maps dimension value to position (in pixels) along width of chart.*/
 		this.x = (this.db.isStringDimension(this.xDimension) ? d3.scalePoint() : d3.scaleLinear())
 			.domain(d3.extent(this.plotData.dates))
 			.range([this.axismargin.left,self.internalWidth - this.axismargin.right]);
 
+		/** @type {d3.scalePoint} - Scale for x axis on chart
+		 * Maps measure values to position (in pixels) along height of chart.*/
 		this.y = d3.scaleLinear()
 			.domain([0, d3.max(this.plotData.series, d => d3.max(d.values))]).nice()
 			.range([self.internalHeight - this.axismargin.bottom,this.axismargin.top]);
 
-		//x
+		//Container for the x-axis
 		this.xAxisContainer = d3.select(this.container).append('svg')
 			.classed('axisContainer x',true)
 			.style('position','absolute')
@@ -315,7 +371,7 @@
 			.style('top',this.margin.top+this.internalHeight+'px')
 			.style('left',this.margin.left+'px');
 
-		//y
+		//Container for the y-axis
 		this.yAxisContainer = d3.select(this.container).append('svg')
 			.classed('axisContainer y',true)
 			.style('position','absolute')
@@ -324,27 +380,30 @@
 			.style('left',(this.margin.left-50)+'px')
 			.style('top',this.margin.top+'px');
 
-		//Add axis to each axis container
-		//x
+		//Draw the x-axis
 		this.xAxisContainer.append('g')
 			.classed('axis',true)
 			.call(d3.axisBottom().scale(this.x));
-		//y
+
+		//Draw the y-axis
 		this.yAxisContainer.append('g')
 			.classed('axis',true)
 			.attr('transform','translate(50)')
 			.call(d3.axisLeft().scale(this.y));
 
+		//Save the width of the axis line to adjust the graph later on
 		this.axislineWidth = parseInt(getComputedStyle(
 			document.querySelector('.CINEMA_COMPONENT.MULTILINE_PLOT .axis line'))
 			.getPropertyValue('stroke-width'), 10);
 
+		//Set the position of both axis
 		this.xAxisContainer.style('top',this.margin.top+this.internalHeight+this.axislineWidth+'px');
 		this.yAxisContainer.style('left', (this.margin.left - 50 - this.axislineWidth) +'px');
 
-		/** @type {d3.selection (svg)} The SVG element containing all the content of the component */
+		/** @type {d3.selection (svg)} The SVG element containing all the content of the svg plane */
 		this.chart = this.initChart();
 
+		//Draw
 		this.redraw();
 	}
 	//establish prototype chain
@@ -366,56 +425,68 @@
 				.style('width',this.internalWidth+'px')
 				.style('height',this.internalHeight+'px');
 
+			//update svg plane size
 			this.svg.attr('viewBox','0 0 '+this.internalWidth+' '+this.internalHeight);
 
-				//Rescale
+			//Rescale
 			this.x.range([this.axismargin.left, this.internalWidth - this.axismargin.right]);
 			this.y.range([this.internalHeight - this.axismargin.bottom, this.axismargin.top]);
 
+			//Update the x-axis
 			this.xAxisContainer
 				.style('width',this.internalWidth+'px')
 				.style('top',this.margin.top+this.internalHeight+this.axislineWidth+'px')
 				.select('.axis')
 					.call(d3.axisBottom().scale(this.x));
 
+			//Update the y-axis
 			this.yAxisContainer
 				.style('height',this.internalHeight+'px')
 				.select('.axis')
 					.call(d3.axisLeft().scale(this.y));
 
+			//Update the chart line drawing method
 			this.chartline
 				.x((d, i) => this.x(this.plotData.dates[i]))
 				.y(d => this.y(d))
 
+			//Redraw all paths
 			this.path.selectAll("path")
 				.attr("d", d => self.chartline(d.values));
 		}
 	};
 
-	CINEMA_COMPONENTS.LineChart.prototype.setSelection = function(selection) {
-		this.selection = selection;
-		//this.redrawSelectedPoints();
-	}
-
+	/**
+	 * Gets called when the mouse is moved inside the svg plane
+	 * Highlights the selected path and changes the selected data point
+	 * Updates the dragging square if currently dragging
+	 * @type {Object} eventdata - Mouse event data
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.moved = function(eventdata) {
 		var self = this;
 		if(this.getVisibileLineCount()) {
+			//Prevent selecting text
 			eventdata.preventDefault();
-			var currentDatapoint = this.getClickEventDataPoint(eventdata);
 
+			//Get currently selected data point
+			var currentDatapoint = this.getMousePositionData(eventdata);
+
+			//If dragging update dragging square
 			if(this.dragging) {
+				//Startpoint is right of current position
 				if(self.dragStartX > eventdata.layerX){
 					self.svg.select("rect")
 						.attr("x", eventdata.layerX)
 						.attr("width", self.dragStartX - eventdata.layerX);
 				}
+				//Startpoint is left of current position
 				else {
 					self.svg.select("rect")
 						.attr("width", eventdata.layerX - self.dragStartX);
-
 				}
 			}
 
+			//Redraw paths and dot
 			this.path.selectAll("path").attr("stroke", d => d === currentDatapoint.series ? null : "#ddd").filter(d => d === currentDatapoint.series).raise();
 			this.dot.attr("transform", `translate(${self.x(currentDatapoint.date)},${self.y(currentDatapoint.value)})`);
 			this.dot.select("#dot_name_text").attr("overflow", "visible").text(currentDatapoint.umeasurename);
@@ -423,6 +494,11 @@
 		}
 	}
 
+	/**
+	 * Gets called when the mouse enters the svg plane
+	 * Resets the paths and dot
+	 * @type {Object} eventdata - Mouse event data
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.entered = function() {
 		if(this.getVisibileLineCount()) {
 			this.path.selectAll("path").style("mix-blend-mode", null).attr("stroke", "#ddd");
@@ -430,13 +506,20 @@
 		}
 	}
 
+	/**
+	 * Gets called when the mouse leaves the svg plane
+	 * Resets the paths and dot
+	 * @type {Object} eventdata - Mouse event data
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.left = function() {
 		var self = this;
+
+		//Reset paths and dot
 		if(this.getVisibileLineCount()) {
 			this.path.selectAll("path").style("mix-blend-mode", "multiply").attr("stroke", null);
 			this.dot.attr("display", "none");
 		}
-		//prevent draging to continue
+		//Prevent draging from continuing and show failure(red square)
 		if(self.dragging) {
 			self.dragging = false;
 			self.svg.selectAll("rect")
@@ -452,13 +535,24 @@
 		}
 	}
 
+	/**
+	 * Gets called when the mouse gets pushed down on the svg plane
+	 * Saves the start position and data
+	 * Creates the dragging rectange
+	 * @type {Object} eventdata - Mouse event data
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.down = function(eventdata) {
 		var self = this;
+
+		//Prevent selecting text
 		eventdata.preventDefault();
+
+		//Set dragging values
 		self.dragging = true;
-		self.dragStartData = this.getClickEventDataPoint(eventdata);
+		self.dragStartData = this.getMousePositionData(eventdata);
 		self.dragStartX = eventdata.layerX;
 
+		//Create dragging rectange
 		var rect = this.svg.append("rect")
 			.attr("x", self.dragStartX)
 			.attr("y", 0)
@@ -468,26 +562,39 @@
 			.attr("fill", "yellow");
 	}
 
+	/**
+	 * Gets called when the mouse gets released on the svg plane
+	 * Calculates the result of draggung(selected Data)
+	 * Draws the succesful rectange and destroys it
+	 * @type {Object} eventdata - Mouse event data
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.up = function(eventdata) {
 		var self = this;
+
+		//Stop dragging
 		self.dragging = false;
 
-		var dragEndData = this.getClickEventDataPoint(eventdata);
+		//Get data point ad end location
+		var dragEndData = this.getMousePositionData(eventdata);
 
+		//Calculate the selected start and end date
 		self.dragResult = {
 			dimension : self.xDimension,
 			startDate: self.dragStartData.date < dragEndData.date ? self.dragStartData.date : dragEndData.date,
 			endDate: self.dragStartData.date > dragEndData.date ? self.dragStartData.date : dragEndData.date
 		}
 
+		//Adjusted X and Y position of the rectange to include all selected data
 		var adjustedStartX = self.x(self.dragResult.startDate);
 		var adjustedEndX = self.x(self.dragResult.endDate);
 
+		//Solve problem with 0 width rectange
 		if(adjustedStartX === adjustedEndX) {
 			adjustedStartX -= 1;
 			adjustedEndX += 1;
 		}
 
+		//Draw animation and destroy
 		self.svg.selectAll("rect")
 			.transition()
 			.duration(500)
@@ -505,15 +612,26 @@
 				.remove();
 	}
 
-	CINEMA_COMPONENTS.LineChart.prototype.getClickEventDataPoint = function(eventdata) {
+	/**
+	 * Receive the closest data point to the current mouse location
+	 * @type {Object} eventdata - Mouse event data
+	 */
+	CINEMA_COMPONENTS.LineChart.prototype.getMousePositionData = function(eventdata) {
 		var self = this;
+
+		//If any line is visible
 		if(this.getVisibileLineCount()) {
+			//Get position in svg plane as dimension value
 			var ym = this.y.invert(eventdata.layerY);
 			var xm = this.x.invert(eventdata.layerX);
+
+			//Find closest point
 			var i1 = d3.bisectLeft(this.plotData.dates, xm, 1);
 			var i0 = i1 - 1;
 			var i = xm - self.plotData.dates[i0] > self.plotData.dates[i1] - xm ? i1 : i0;
 			var s = this.plotData.series.filter(entry => entry.show).reduce((a, b) => Math.abs(a.values[i] - ym) < Math.abs(b.values[i] - ym) ? a : b);
+
+			//Save the selected point
 			this.currentlySelectedPoint = {
 				date: self.plotData.dates[i],
 				value: s.values[i],
@@ -539,10 +657,12 @@
 	CINEMA_COMPONENTS.LineChart.prototype.redraw = function() {
 		var self = this;
 
+		//Rescale x-axis
 		self.x
 			.domain(d3.extent(self.plotData.dates))
 			.range([self.axismargin.left, self.internalWidth - self.axismargin.right]);
 
+		//Rescale y-axis
 		self.y
 			.domain([
 				d3.min(self.plotData.series.filter(entry => entry.show), d => d3.min(d.values)),
@@ -550,18 +670,22 @@
 			 	]).nice()
 			.range([self.internalHeight - self.axismargin.bottom, self.axismargin.top]);
 
+		//Redraw x-axis
 		self.xAxisContainer
 			.select('.axis')
 				.call(d3.axisBottom().scale(self.x));
 
+		//Redraw y-axis
 		self.yAxisContainer
 			.select('.axis')
 				.call(d3.axisLeft().scale(self.y));
 
+		//Recalculate chartline method
 		self.chartline
 			.x((d, i) => self.x(self.plotData.dates[i]))
 			.y(d => self.y(d));
 
+		//Enter Update Exit paths
 		var updatePaths = self.path.selectAll("path")
 			.data(this.plotData.series.filter(entry => entry.show));
 
@@ -576,8 +700,12 @@
 			.remove();
 	};
 
+	/**
+	 * Take the data from cinema DB and put it in a format readable for the plot
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.prepareData = function() {
 		var self = this;
+
 		//Retrieve all uncertainty dimensions
 		var uncertaintyDims = [];
 		for(var i=0, len=this.dimensions.length; i < len; i++)
@@ -587,8 +715,7 @@
 		//Retrieve all possible values of the current dimension
 		var dataDates = [];
 		this.db.data.forEach(function(value) {
-			//Check for scientific notation
-			if(isScientificNotation(value[self.xDimension])) {
+			if(isInScientificNotation(value[self.xDimension])) {
 				if(!containedInArray.call(dataDates, Number(value[self.xDimension]))) {
 					dataDates.push(Number(value[self.xDimension]));
 				}
@@ -612,15 +739,14 @@
 			});
 		});
 
-		//Fill with data values
+		//Fill with data values / Sum on same dimension value and count occurences
 		this.db.data.forEach(function(dataRow) {
 			var currentIndex;
-			if(isScientificNotation(dataRow[self.xDimension])) {
+			if(isInScientificNotation(dataRow[self.xDimension]))
 				currentIndex = dataDates.indexOf(Number(dataRow[self.xDimension]));
-			}
-			else {
+			else
 				currentIndex = dataDates.indexOf(dataRow[self.xDimension]);
-			}
+
 			dataSeries.forEach(function(dataSeriesObject) {
 				if(!isNaN(dataRow[dataSeriesObject.name])) {
 					dataSeriesObject.values[currentIndex] += parseFloat(dataRow[dataSeriesObject.name]);
@@ -636,11 +762,12 @@
 			});
 		});
 
-		//Add summed uncertainty measures for each dimension type
+		//Add summed uncertainty measures for each dimension type => e.g. Total avg brightness uncertainty
 		this.allowedUPrefixes.forEach(function(uncertaintyDim, index) {
 			var averageUncertainty = Array(dataDates.length).fill(0);
 			var count = 0;
 
+			//Sum and count
 			dataSeries.forEach(function(dataSeriesObject, indexObject) {
 				if(dataSeriesObject.name.startsWith(uncertaintyDim))
 				{
@@ -651,11 +778,13 @@
 				}
 			});
 
+			//Calculate averages
 			if(count > 0) {
 				averageUncertainty.forEach(function(value, index) {
 					averageUncertainty[index] = value / count;
 				});
 
+				//Put into object
 				dataSeries.push({
 					name: uncertaintyDim + " Uncertainty",
 					values : averageUncertainty,
@@ -677,6 +806,11 @@
 		};
 	};
 
+	/**
+	 * Set the visibility of a line by using the uncertainty measure name
+	 * @type {String} name - name of uncertainty measure
+	 * @type {boolean} isShown - if the line shoudl be shown
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.setLineVisibility = function(name, isShown) {
 		var self = this;
 		for(var i = 0; i < this.plotData.series.length; i++) {
@@ -687,30 +821,17 @@
 		}
 	}
 
-	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function(name, isShown) {
+	/**
+	 * Retrieve the amount of shown lines
+	 */
+	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function() {
 		return this.plotData.series.filter(entry => entry.show).length;
 	}
 
-	CINEMA_COMPONENTS.LineChart.prototype.getPicturePathsForPoint = function() {
-		var self = this;
-
-		if(self.currentlySelectedPoint === {})
-			return([]);
-		else {
-			var imagePaths = [];
-			self.db.data.forEach(function(dataRow) {
-				if(dataRow[self.xDimension] == self.currentlySelectedPoint.date) {
-					for (var key in dataRow) {
-						if(key.startsWith("FILE_"))
-							if(key.replace(/FILE_/gi,"") === self.currentlySelectedPoint.umeasurename.replace(self.allowedUPrefixesRegEx,""))
-								imagePaths.push(dataRow[key]);
-					}
-				}
-			});
-			return imagePaths;
-		}
-	}
-
+	/**
+	 * Checks if a dimension name is in the allowed uncertainty prefixes list
+	 * @type {String} dimension - name of the dimension to check
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.startsWithUPrefix = function(dimension) {
 		for(i = 0; i < this.allowedUPrefixes.length; i++) {
 			if(dimension.startsWith(this.allowedUPrefixes[i]))
@@ -720,3 +841,33 @@
 	}
 
 })();
+
+//CINEMA_COMPONENTS.LineChart.prototype.getPicturePathsForPoint = function() {
+//	var self = this;
+
+//	if(self.currentlySelectedPoint === {})
+//		return([]);
+//	else {
+//		var imagePaths = [];
+//		self.db.data.forEach(function(dataRow) {
+//			if(dataRow[self.xDimension] == self.currentlySelectedPoint.date) {
+//				for (var key in dataRow) {
+//					if(key.startsWith("FILE_"))
+//						if(key.replace(/FILE_/gi,"") === self.currentlySelectedPoint.umeasurename.replace(self.allowedUPrefixesRegEx,""))
+//							imagePaths.push(dataRow[key]);
+//				}
+//			}
+//		});
+//		return imagePaths;
+//	}
+//}
+
+//Create a regular expression checking for allowed prefixes
+//this.allowedUPrefixesRegEx = "/";
+//self.allowedUPrefixes.forEach(function(value,index) {
+//	if(index === 0)
+//		self.allowedUPrefixesRegEx += value;
+//	else
+//		self.allowedUPrefixesRegEx += "|" + value;
+//});
+//this.allowedUPrefixesRegEx = new RegExp(self.allowedUPrefixesRegEx + "/gi");

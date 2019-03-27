@@ -643,26 +643,34 @@
 		return this.y[d](p[d]);
 	}
 
+	/**
+	 * Get the y-coordinate of the line for data point p on dimension d
+	 * @param {Object} dimObject - dimension / startDate / endDate selected}
+	 */
 	CINEMA_COMPONENTS.Pcoord.prototype.addSelectionByDimensionValues = function(dimObject) {
 		var self = this;
 
+		//Get pixel values of given dates
 		var startpx = this.y[dimObject.dimension](dimObject.startDate)
 		var endpx = this.y[dimObject.dimension](dimObject.endDate)
 
-		//Single value selection
+		//avoid 0px selection
 		if(startpx === endpx) {
 			startpx += 1;
 			endpx -= 1;
 		}
 
+		//Check if inside boundary
 		var range = [
 			Math.min(endpx,self.internalHeight),
 			Math.max(startpx,0)
 		]
 
-		self.axisContainer.select('.axisGroup[dimension='+dimObject.dimension+']').select('g.brush')
+		//Set selection
+		self.axisContainer
+		.select('.axisGroup[dimension='+dimObject.dimension+']')
+		.select('g.brush')
 			.call(self.brush.move, function() {return range;});
-
 	}
 
 	/**
