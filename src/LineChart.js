@@ -67,7 +67,7 @@
 		return indexOf.call(this, needle) > -1;
 	};
 
-	/** @type {RegExp} - Regular Expression to check for scientific notations */
+	/** @type {RegExp} - Regular Expression to check for scientific notation*/
 	const scientificNotationRegExp = new RegExp(/^((\d)+|(\d+\.\d+))(e|E)(\+|-)(\d)+$/);
 
 	/**
@@ -82,17 +82,35 @@
 	}
 
 	/**
+	 * Checks if a dimension name starts with a string from the list
+	 * @type {String} dimension - name of the dimension to check
+	 * @type {List} prefixList - list of prefixes
+	 */
+	var startsWithPrefixes = function(dimension, prefixList) {
+		if(typeof prefixList === 'undefined')
+			return false;
+		for(i = 0; i < prefixList.length; i++) {
+			if(dimension.startsWith(prefixList[i]))
+				return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Abstract constructor for LineCart Components
 	 * Represents a component for displaying and interacting with a database on a multiple lines chart
 	 * @param {DOM} parent - The DOM object to build this component inside of
 	 * @param {CINEMA_COMPONENTS.Database} database - The database behind this component
 	 * @param {RegExp} filterRegex - A regex to determine which dimensions to NOT show on the component
 	 */
-	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex) {
+	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex, image_measures, excluded_dimensions) {
 		var self = this;
 
-		//Allowed prefixes for uncertainty
-		this.allowedUPrefixes = ["u_min_","u_avg_","u_max_","u_97_","u_03_"];
+		//Allowed prefixes for image measures
+		this.allowedUPrefixes = image_measures;
+
+		//Excluded dimensions for x-axis
+		this.excludedDim = excluded_dimensions;
 
 		/***************************************
 		 * SIZING
@@ -185,7 +203,9 @@
 		//Get all non uncertainty and non file dimensions
 		this.validDim = [];
 		for(var i=0, len=self.dimensions.length; i < len; i++) {
-			if(!(self.startsWithUPrefix(self.dimensions[i]) || self.dimensions[i].startsWith("FILE")))
+			if(!(self.dimensions[i].startsWith("FILE") ||
+			startsWithPrefixes(self.dimensions[i], this.allowedUPrefixes) ||
+			startsWithPrefixes(self.dimensions[i], this.excludedDim)))
 				self.validDim.push(self.dimensions[i]);
 		}
 
@@ -709,7 +729,7 @@
 		//Retrieve all uncertainty dimensions
 		var uncertaintyDims = [];
 		for(var i=0, len=this.dimensions.length; i < len; i++)
-			if(self.startsWithUPrefix(this.dimensions[i]))
+			if(startsWithPrefixes(self.dimensions[i], this.allowedUPrefixes))
 				uncertaintyDims.push(this.dimensions[i]);
 
 		//Retrieve all possible values of the current dimension
@@ -826,18 +846,6 @@
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function() {
 		return this.plotData.series.filter(entry => entry.show).length;
-	}
-
-	/**
-	 * Checks if a dimension name is in the allowed uncertainty prefixes list
-	 * @type {String} dimension - name of the dimension to check
-	 */
-	CINEMA_COMPONENTS.LineChart.prototype.startsWithUPrefix = function(dimension) {
-		for(i = 0; i < this.allowedUPrefixes.length; i++) {
-			if(dimension.startsWith(this.allowedUPrefixes[i]))
-				return true;
-		}
-		return false;
 	}
 
 })();
