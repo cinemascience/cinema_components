@@ -14,19 +14,34 @@
 	bottom: 10px;
 }
 
-.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.y {
-	max-width: 150px;
-	position: absolute;
-	top: 20px;
-	left: 5px;
+.CINEMA_COMPONENT.MULTILINE_PLOT .tableContainer {
+	background-color: #eaeaea;
+	width: 135px;
 }
 
-.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.y td:nth-child(even) {
+.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.y td {
+	background-color: #eaeaea;
+	width: 135px;
+	white-space: nowrap;
+}
+
+.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.yGroup td {
+	background-color: #eaeaea;
+	width: 135px;
+	white-space: nowrap;
+}
+
+/*.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.y td:nth-child(even) {
 	background-color: #f2f2f2;
+}*/
+
+.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.checkboxtext{
+	font-size: 10px;
 }
 
-.CINEMA_COMPONENT.MULTILINE_PLOT .lineSelect.checkbox{
+.CINEMA_COMPONENT.MULTILINE_PLOT .lineGroupSelect.checkboxtext{
 	font-size: 10px;
+	font-weight: bold;
 }
 
 .CINEMA_COMPONENT.MULTILINE_PLOT .lineChart {

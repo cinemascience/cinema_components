@@ -84,7 +84,7 @@
 	/**
 	 * Checks if a dimension name starts with a string from the list
 	 * @type {String} dimension - name of the dimension to check
-	 * @type {List} prefixList - list of prefixes
+	 * @type {Array} prefixList - list of prefixes
 	 */
 	var startsWithPrefixes = function(dimension, prefixList) {
 		if(typeof prefixList === 'undefined')
@@ -106,8 +106,22 @@
 	CINEMA_COMPONENTS.LineChart = function(parent, database, filterRegex, image_measures, excluded_dimensions) {
 		var self = this;
 
-		//Allowed prefixes for image measures
-		this.allowedUPrefixes = image_measures;
+		//call super-constructor
+		CINEMA_COMPONENTS.Component.call(this,parent,database,filterRegex);
+
+		//Allowed prefixes for image measures, check for unused beforehand
+		if(typeof image_measures !== 'undefined') {
+			this.allowedUPrefixes = [];
+			const image_measuresLength = image_measures.length;
+			for (var i = 0; i < image_measuresLength; i++) {
+				for (var key in self.db.dimensionTypes) {
+					if(key.startsWith(image_measures[i])) {
+						this.allowedUPrefixes.push(image_measures[i]);
+						break;
+					}
+				}
+			}
+		}
 
 		//Excluded dimensions for x-axis
 		this.excludedDim = excluded_dimensions;
@@ -121,9 +135,6 @@
 
 		/** @type {CINEMA_COMPONENTS.Margin} Margins of axis to the SVG plane */
 		this.axismargin = new CINEMA_COMPONENTS.Margin(15,15,15,15);
-
-		//call super-constructor
-		CINEMA_COMPONENTS.Component.call(this,parent,database,filterRegex);
 
 		/***************************************
 		 * DATA
@@ -239,23 +250,77 @@
 
 		/** Checkboxtable for selecting uncertainty measures **/
 
+		this.tableContainer = d3.select(this.container).append('div')
+			.classed('tableContainer',true)
+			.style('position','absolute')
+			.style('top', 20 + 'px')
+			.style('left', 5 + 'px')
+			.style('bottom',this.margin.bottom+'px')
+			.style('overflow-y', 'auto')
+			.style('overflow-x', 'hidden');
+
+		//Set the checkboxes for the whole group and update
+		this.updateLineGroupVisibility = function() {
+			d3.selectAll(".lineGroupSelectCheckbox").each(function(d) {
+				const cbgroup = d3.select(this);
+				d3.selectAll(".lineSelectCheckbox").each(function(d) {
+					const cb = d3.select(this);
+					if(cb.property("value").startsWith(cbgroup.property("value")))
+						cb.property('checked', cbgroup.property("checked"));
+				});
+			});
+			self.updateLineVisibility();
+		}
+
 		//Function to toggle Checkboxes for uncertainty measures
 		this.updateLineVisibility = function() {
 			d3.selectAll(".lineSelectCheckbox").each(function(d) {
 				const cb = d3.select(this);
-				if(cb.property("checked"))
-					self.setLineVisibility(cb.property("value"), true);
-				else
-					self.setLineVisibility(cb.property("value"), false);
+				self.setLineVisibility(cb.property("value"), cb.property("checked"));
 			});
 			self.redraw();
 		}
 
+		/** Measure group checkboxes **/
+
 		//Table containing the checkboxes
-		this.ySelectTable = d3.select(this.container)
+		this.ySelectGroupTable = self.tableContainer
+			.append('table')
+				.classed("lineSelect yGroup", true);
+
+		//Rows in the checkbox table
+		this.yTableGroupRows = this.ySelectGroupTable.selectAll('tr')
+			.classed("lineSelectRow y", true)
+			.data(this.allowedUPrefixes)
+			.enter().append('tr');
+
+		//Add checkboxes to the table
+		this.yTableGroupRows.selectAll('td')
+			.data((d) => [d])
+			.enter()
+			.append('td')
+			.append("input")
+				.classed("lineGroupSelectCheckbox", true)
+				.attr("checked", true)
+				.attr("type", "checkbox")
+				.attr("id", function(d,i) { return 'a'+i; })
+				.attr("value", (d) => d)
+				.on("change", self.updateLineGroupVisibility);
+
+		//Add text next to the checkboxes
+		this.yTableGroupRows.selectAll("td")
+			.data((d) => [d])
+			.append("text")
+				.classed("lineGroupSelect checkboxtext", true)
+				.text((d) => "All " + d);
+
+		/** Measures checkboxes **/
+
+		//Table containing the checkboxes
+		this.ySelectTable = self.tableContainer
 			.append('table')
 				.classed("lineSelect y", true)
-				.property("border","1px");
+				//.property("border","1px");
 
 		//Rows in the checkbox table
 		this.yTableRows = this.ySelectTable.selectAll('tr')
@@ -280,7 +345,7 @@
 		this.yTableRows.selectAll("td")
 			.data((d) => [d])
 			.append("text")
-				.classed("lineSelect checkbox", true)
+				.classed("lineSelect checkboxtext", true)
 				.text((d) => d.name);
 
 		/** SVG plane **/
@@ -565,22 +630,24 @@
 	CINEMA_COMPONENTS.LineChart.prototype.down = function(eventdata) {
 		var self = this;
 
-		//Prevent selecting text
-		eventdata.preventDefault();
+		if(eventdata.button === 0) {
+			//Prevent selecting text
+			eventdata.preventDefault();
 
-		//Set dragging values
-		self.dragging = true;
-		self.dragStartData = this.getMousePositionData(eventdata);
-		self.dragStartX = eventdata.layerX;
+			//Set dragging values
+			self.dragging = true;
+			self.dragStartData = this.getMousePositionData(eventdata);
+			self.dragStartX = eventdata.layerX;
 
-		//Create dragging rectange
-		var rect = this.svg.append("rect")
-			.attr("x", self.dragStartX)
-			.attr("y", 0)
-			.attr("width", 1)
-			.attr("height", self.svg.style("height"))
-			.attr("opacity", 0.5)
-			.attr("fill", "yellow");
+			//Create dragging rectange
+			var rect = this.svg.append("rect")
+				.attr("x", self.dragStartX)
+				.attr("y", 0)
+				.attr("width", 1)
+				.attr("height", self.svg.style("height"))
+				.attr("opacity", 0.5)
+				.attr("fill", "yellow");
+		}
 	}
 
 	/**
@@ -592,45 +659,47 @@
 	CINEMA_COMPONENTS.LineChart.prototype.up = function(eventdata) {
 		var self = this;
 
-		//Stop dragging
-		self.dragging = false;
+		if(eventdata.button === 0 && self.dragging) {
+			//Stop dragging
+			self.dragging = false;
 
-		//Get data point ad end location
-		var dragEndData = this.getMousePositionData(eventdata);
+			//Get data point ad end location
+			var dragEndData = this.getMousePositionData(eventdata);
 
-		//Calculate the selected start and end date
-		self.dragResult = {
-			dimension : self.xDimension,
-			startDate: self.dragStartData.date < dragEndData.date ? self.dragStartData.date : dragEndData.date,
-			endDate: self.dragStartData.date > dragEndData.date ? self.dragStartData.date : dragEndData.date
+			//Calculate the selected start and end date
+			self.dragResult = {
+				dimension : self.xDimension,
+				startDate: self.dragStartData.date < dragEndData.date ? self.dragStartData.date : dragEndData.date,
+				endDate: self.dragStartData.date > dragEndData.date ? self.dragStartData.date : dragEndData.date
+			}
+
+			//Adjusted X and Y position of the rectange to include all selected data
+			var adjustedStartX = self.x(self.dragResult.startDate);
+			var adjustedEndX = self.x(self.dragResult.endDate);
+
+			//Solve problem with 0 width rectange
+			if(adjustedStartX === adjustedEndX) {
+				adjustedStartX -= 1;
+				adjustedEndX += 1;
+			}
+
+			//Draw animation and destroy
+			self.svg.selectAll("rect")
+				.transition()
+				.duration(500)
+					.attr("x", adjustedStartX)
+					.attr("width", adjustedEndX - adjustedStartX)
+				.delay(50)
+				.transition()
+					.duration(100)
+					.attr("stroke-width", 10)
+					.attr("stroke", "green")
+				.delay(200)
+				.transition()
+					.duration(1000)
+					.attr("opacity", 0.0)
+					.remove();
 		}
-
-		//Adjusted X and Y position of the rectange to include all selected data
-		var adjustedStartX = self.x(self.dragResult.startDate);
-		var adjustedEndX = self.x(self.dragResult.endDate);
-
-		//Solve problem with 0 width rectange
-		if(adjustedStartX === adjustedEndX) {
-			adjustedStartX -= 1;
-			adjustedEndX += 1;
-		}
-
-		//Draw animation and destroy
-		self.svg.selectAll("rect")
-			.transition()
-			.duration(500)
-				.attr("x", adjustedStartX)
-				.attr("width", adjustedEndX - adjustedStartX)
-			.delay(50)
-			.transition()
-				.duration(100)
-				.attr("stroke-width", 10)
-				.attr("stroke", "green")
-			.delay(200)
-			.transition()
-				.duration(1000)
-				.attr("opacity", 0.0)
-				.remove();
 	}
 
 	/**
@@ -827,7 +896,7 @@
 	}
 
 	/**
-	 * Retrieve the amount of shown lines
+	 * Retrieve the amount of visible lines
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function() {
 		return this.plotData.series.filter(entry => entry.show).length;
