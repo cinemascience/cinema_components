@@ -205,17 +205,18 @@
 		for(var i=0, len=self.dimensions.length; i < len; i++) {
 			if(!(self.dimensions[i].startsWith("FILE") ||
 			startsWithPrefixes(self.dimensions[i], this.allowedUPrefixes) ||
-			startsWithPrefixes(self.dimensions[i], this.excludedDim)))
+			startsWithPrefixes(self.dimensions[i], this.excludedDim))) {
 				self.validDim.push(self.dimensions[i]);
+			}
 		}
 
-		//Add Dimension select option
+		//Add Dimension select dropdown menu
 		this.xSelect = d3.select(this.container).append('select')
 			.classed('dimensionSelect x', true)
 			.style('position','absolute')
 			.node();
 
-		//Add all options
+		//Add all options to dropdown menu
 		d3.select(this.xSelect).selectAll('option')
 			.data(this.validDim)
 			.enter().append('option')
@@ -735,15 +736,8 @@
 		//Retrieve all possible values of the current dimension
 		var dataDates = [];
 		this.db.data.forEach(function(value) {
-			if(isInScientificNotation(value[self.xDimension])) {
-				if(!containedInArray.call(dataDates, Number(value[self.xDimension]))) {
-					dataDates.push(Number(value[self.xDimension]));
-				}
-			}
-			else {
-				if(!containedInArray.call(dataDates, value[self.xDimension])) {
-					dataDates.push(value[self.xDimension]);
-				}
+			if(!containedInArray.call(dataDates, Number(value[self.xDimension]))) {
+				dataDates.push(Number(value[self.xDimension]));
 			}
 		});
 		dataDates.sort(function(a, b){return a-b});
@@ -761,11 +755,7 @@
 
 		//Fill with data values / Sum on same dimension value and count occurences
 		this.db.data.forEach(function(dataRow) {
-			var currentIndex;
-			if(isInScientificNotation(dataRow[self.xDimension]))
-				currentIndex = dataDates.indexOf(Number(dataRow[self.xDimension]));
-			else
-				currentIndex = dataDates.indexOf(dataRow[self.xDimension]);
+			var currentIndex = dataDates.indexOf(Number(dataRow[self.xDimension]));
 
 			dataSeries.forEach(function(dataSeriesObject) {
 				if(!isNaN(dataRow[dataSeriesObject.name])) {
@@ -812,11 +802,6 @@
 					show : true
 				});
 			}
-		});
-
-		//Convert dates to numbers
-		dataDates.forEach(function(value, index) {
-			dataDates[index] = parseInt(value, 10);
 		});
 
 		//Combine the data
