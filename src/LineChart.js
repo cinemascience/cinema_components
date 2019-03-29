@@ -211,7 +211,7 @@
 
 		/** Dimension selection for x-axis **/
 
-		//Get all non uncertainty and non file dimensions
+		//Get all non image measure and non file dimensions
 		this.validDim = [];
 		for(var i=0, len=self.dimensions.length; i < len; i++) {
 			if(!(self.dimensions[i].startsWith("FILE") ||

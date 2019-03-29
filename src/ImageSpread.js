@@ -15,19 +15,19 @@
 
 	//If CINEMA_COMPONENTS is already defined, add to it, otherwise create it
 	var CINEMA_COMPONENTS = {}
-	if (window.CINEMA_COMPONENTS)
+	if(window.CINEMA_COMPONENTS)
 		CINEMA_COMPONENTS = window.CINEMA_COMPONENTS;
 	else
 		window.CINEMA_COMPONENTS = CINEMA_COMPONENTS;
 
 	//Require that the Component module be included
-	if (!CINEMA_COMPONENTS.COMPONENT_INCLUDED)
+	if(!CINEMA_COMPONENTS.COMPONENT_INCLUDED)
 		throw new Error("CINEMA_COMPONENTS ImageSpread module requires that Component" +
 			" module be included. Please make sure that Component module" +
 			" is included BEFORE ImageSpread module");
 
 	//Require that d3 be included
-	if (!window.d3) {
+	if(!window.d3) {
 		throw new Error("CINEMA_COMPONENTS ImageSpread module requires that" +
 			" d3 be included (at least d3v4). Please make sure that d3 is included BEFORE the" +
 			" the ImageSpread module");
@@ -37,13 +37,28 @@
 	CINEMA_COMPONENTS.IMAGE_SPREAD_INCLUDED = true;
 
 	/**
+	 * Checks if a dimension name starts with a string from the list
+	 * @type {String} dimension - name of the dimension to check
+	 * @type {Array} prefixList - list of prefixes
+	 */
+	var startsWithPrefixes = function(dimension, prefixList) {
+		if(typeof prefixList === 'undefined')
+			return false;
+		for(i = 0; i < prefixList.length; i++) {
+			if(dimension.startsWith(prefixList[i]))
+				return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Constructor for ImageSpread Component
 	 * Represents a component for viewing a spread of images from a selection of data
 	 * @param {DOM} parent - The DOM object to build this component inside of
 	 * @param {CINEMA_COMPONENTS.Database} database - The database behind this component
 	 * (Note that ImageSpread does not use a filterRegex)
 	 */
-	CINEMA_COMPONENTS.ImageSpread = function(parent, database) {
+	CINEMA_COMPONENTS.ImageSpread = function(parent, database, image_measures, excluded_dimensions) {
 		var self = this;
 
 		/***************************************
@@ -56,6 +71,33 @@
 		/***************************************
 		 * DATA
 		 ***************************************/
+
+		 //Allowed prefixes for image measures, check for unused beforehand
+		if(typeof image_measures !== 'undefined') {
+			this.allowedUPrefixes = [];
+			const image_measuresLength = image_measures.length;
+			for (var i = 0; i < image_measuresLength; i++) {
+				for (var key in self.db.dimensionTypes) {
+					if(key.startsWith(image_measures[i])) {
+						this.allowedUPrefixes.push(image_measures[i]);
+						break;
+					}
+				}
+			}
+		}
+
+		//Excluded dimensions for x-axis
+		this.excludedDim = excluded_dimensions;
+
+		//Get all non image measure and non file dimensions
+		this.validDim = [];
+		for(var i=0, len=self.dimensions.length; i < len; i++) {
+			if(!(self.dimensions[i].startsWith("FILE") ||
+			startsWithPrefixes(self.dimensions[i], this.allowedUPrefixes) ||
+			startsWithPrefixes(self.dimensions[i], this.excludedDim))) {
+				self.validDim.push(self.dimensions[i]);
+			}
+		}
 
 		//override this.dimensions to include only FILE dimensions
 		this.dimensions = this.dimensions.filter(function(d) {
@@ -89,7 +131,7 @@
 		d3.select(this.container).classed('IMAGE_SPREAD', true);
 
 		//If there are no file dimensions, place a warning and stop here
-		if (!this.hasFileDimensions) {
+		if(!this.hasFileDimensions) {
 			this.noFileWarning = d3.select(this.container).append('div')
 				.classed('noFileWarning', true)
 				.text("No file information to display");
@@ -185,9 +227,7 @@
 		this.sortOrderNode = this.sortOrderContainer.append('input')
 			.attr("type", "checkbox")
 			.on('change', function() {
-				console.log(self.selection);
 				self.selection.sort(self.getSortComparator());
-				console.log(self.selection);
 				self.populateResults();
 			})
 			.node();
@@ -200,13 +240,12 @@
 				.classed('label', true)
 				.text("Group equal values:");
 			this.groupsortingContainer.append('br');
-			/** @type {DOM (input/checkbox)} The node for toggling sort order */
+			/** @type {DOM (input/checkbox)} The node for toggling grouping order */
 			this.groupsortingNode = this.groupsortingContainer.append('input')
 				.attr('type', 'checkbox')
 				.on('change', function() {
-					console.log(self.selection);
-					//self.selection.sort(self.getSortComparator());
-					//self.populateResults();
+					self.selection.sort(self.getSortComparator());
+					self.populateResults();
 				})
 				.node();
 
@@ -247,7 +286,7 @@
 		//Call super
 		CINEMA_COMPONENTS.Component.prototype.updateSize.call(this);
 
-		if (this.hasFileDimensions) {
+		if(this.hasFileDimensions) {
 			var headerSize = this.header.node().getBoundingClientRect().height;
 			this.imageContainer
 				.style('top', headerSize + 'px')
@@ -272,38 +311,62 @@
 	CINEMA_COMPONENTS.ImageSpread.prototype.getSortComparator = function() {
 		var self = this;
 		var d = this.sortNode.value;
-		if (this.sortOrderNode.checked)
+		var checkedMultiplier = 1;
+
+		if(this.sortOrderNode.checked)
+			checkedMultiplier = -1;
+
+		//Group images with equal values, not looking at the sort dimension
+		//Then sort groups by the sorting dimension
+		if(this.groupsortingNode.checked) {
 			return function(a, b) {
-				if (self.db.data[a][d] === undefined) {
-					return 1;
+				if(self.db.data[a][d] === undefined)
+					return -1 * checkedMultiplier;
+
+				if(self.db.data[b][d] === undefined)
+					return 1 * checkedMultiplier;
+
+				if(isNaN(self.db.data[a][d]))
+					return -1 * checkedMultiplier;
+
+				if(isNaN(self.db.data[b][d]))
+					return 1 * checkedMultiplier;
+
+				//Get all  vlid dimensions but the sorting dimension
+				const nonSortDimensions = self.validDim.filter(function(value) {
+					return value != d;
+				});
+				//Grouping
+				for(var i = 0; i < nonSortDimensions.length; i += 1) {
+					if(self.db.data[a][nonSortDimensions[i]] == self.db.data[b][nonSortDimensions[i]]) {
+						continue;
+					}
+					else {
+						return (self.db.data[a][nonSortDimensions[i]] - self.db.data[b][nonSortDimensions[i]]) * checkedMultiplier;
+					}
 				}
-				if (self.db.data[b][d] === undefined) {
-					return -1;
-				}
-				if (isNaN(self.db.data[a][d])) {
-					return 1
-				};
-				if (isNaN(self.db.data[b][d])) {
-					return -1
-				};
-				return self.db.data[b][d] - self.db.data[a][d];
+				//Equal non sorting dimensions, sort by sorting dimension
+				return  (self.db.data[a][d] - self.db.data[b][d]) * checkedMultiplier;
 			}
-		else
+		}
+		//Only sort by sorting dimension
+		else {
 			return function(a, b) {
-				if (self.db.data[a][d] === undefined) {
-					return -1;
-				}
-				if (self.db.data[b][d] === undefined) {
-					return 1;
-				}
-				if (isNaN(self.db.data[a][d])) {
-					return -1
-				};
-				if (isNaN(self.db.data[b][d])) {
-					return 1
-				};
-				return self.db.data[a][d] - self.db.data[b][d];
+				if(self.db.data[a][d] === undefined)
+					return -1 * checkedMultiplier;
+
+				if(self.db.data[b][d] === undefined)
+					return 1 * checkedMultiplier;
+
+				if(isNaN(self.db.data[a][d]))
+					return -1 * checkedMultiplier;
+
+				if(isNaN(self.db.data[b][d]))
+					return 1 * checkedMultiplier;
+
+				return (self.db.data[a][d] - self.db.data[b][d]) * checkedMultiplier;
 			}
+		}
 	}
 
 	/**
@@ -311,7 +374,7 @@
 	 */
 	CINEMA_COMPONENTS.ImageSpread.prototype.populateResults = function() {
 		var self = this;
-		if (this.hasFileDimensions) {
+		if(this.hasFileDimensions) {
 			var pageSize = this.pageSizeNode.value;
 			var pageData = this.selection.slice((this.currentPage - 1) * pageSize,
 				Math.min(this.currentPage * pageSize, this.selection.length));
@@ -349,15 +412,15 @@
 							d3.select(this).select('.display').html('');
 							//Create an image in the display if the it is an image filetype
 							var ext = getFileExtension(f);
-							if (isValidFiletype(ext)) {
-								if (ext.toUpperCase() === 'VTI') {
+							if(isValidFiletype(ext)) {
+								if(ext.toUpperCase() === 'VTI') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
 										.attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
 										.attr('width', '100%')
 										.on('click', function() {self.createModalVTI(self.db.directory + '/' + f);});
-								} else if (ext.toUpperCase() === 'PDB') {
+								} else if(ext.toUpperCase() === 'PDB') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
@@ -416,7 +479,7 @@
 		backgroundContainer.attr('class', 'modalBackground')
 			.on('click', function() {
 				//clicking the modal removes it
-				if (d3.event.target.tagName === 'IMG') {
+				if(d3.event.target.tagName === 'IMG') {
 					d3.select(this).remove();
 				}
 			});
@@ -553,7 +616,7 @@
 				height
 			}) => {
 				// 2px padding + 2x1px boder + 5px edge = 14
-				if (width > 414) {
+				if(width > 414) {
 					controllerWidget.setSize(400, 150);
 				} else {
 					controllerWidget.setSize(width - 14, 150);
@@ -593,7 +656,7 @@
 		backgroundContainer.attr('class', 'modalBackground')
 			.on('click', function() {
 				//clicking the modal removes it
-				if (d3.event.target.tagName === 'IMG') {
+				if(d3.event.target.tagName === 'IMG') {
 					d3.select(this).remove();
 				}
 			});
@@ -682,11 +745,11 @@
 		d3.select(this.container).select('.pageNavWrapper').remove(); //remove previous widget
 		var pageSize = this.pageSizeNode.value;
 		//If there are more results than can fit on one page, build a pageNav widget
-		if (this.selection.length > pageSize) {
+		if(this.selection.length > pageSize) {
 			//calculate number of pages needed
 			var numPages = Math.ceil(this.selection.length / pageSize);
 			//If the currently selected page is higher than the new number of pages, set to last page
-			if (this.currentPage > numPages) {
+			if(this.currentPage > numPages) {
 				this.currentPage = numPages
 			};
 			//Add pageNav and buttons
@@ -706,9 +769,9 @@
 					return d.text;
 				})
 				.on('click', function(d) {
-					if (d3.select(this).attr('mode') != 'selected') {
+					if(d3.select(this).attr('mode') != 'selected') {
 						self.currentPage = d.page;
-						if (d.do_rebuild) {
+						if(d.do_rebuild) {
 							self.updatePageNav();
 							self.populateResults();
 						} else {
@@ -724,7 +787,7 @@
 			d3.select('.pageNavWrapper').append('div')
 				.classed('pageReadout', true)
 				.text(this.currentPage + " / " + numPages);
-		} //end if (this.selection.length > pageSize)
+		} //end if(this.selection.length > pageSize)
 		//Otherwise, don't build a widget and go to first (only) page
 		else {
 			this.currentPage = 1;
@@ -741,7 +804,7 @@
 	 **/
 	function getPageButtons(numPages, current) {
 		//If there are 7 or fewer pages, create a widget with a button for each page ([1|2|3|4|5|6|7])
-		if (numPages <= 7) {
+		if(numPages <= 7) {
 			var pageData = [];
 			for (var i = 0; i < numPages; i++)
 				pageData.push({
@@ -757,7 +820,7 @@
 			var stepSize = Math.pow(10, Math.round(Math.log10(numPages) - 1));
 			var pageData = [];
 			//Create buttons for selecting lower pages if current is not already one
-			if (current != 1) {
+			if(current != 1) {
 				pageData.push({
 					text: "|<",
 					page: 1,
@@ -782,7 +845,7 @@
 				do_rebuild: false
 			});
 			//Create buttons for selecting higher pages if current is not already at the end
-			if (current != numPages) {
+			if(current != numPages) {
 				var nextStep = current + stepSize <= numPages ? current + stepSize : current + 1;
 				pageData.push({
 					text: nextStep,
@@ -806,7 +869,7 @@
 
 	//Get if the given filetype is a valid image filetype
 	function isValidFiletype(type) {
-		if (!type)
+		if(!type)
 			return false;
 		var validFiletypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'VTI', 'PDB'];
 		type = type.trimLeft().trimRight();
