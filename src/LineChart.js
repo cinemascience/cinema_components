@@ -221,7 +221,7 @@
 			}
 		}
 
-		//Add Dimension select dropdown menu
+		//Add Dimension selection dropdown menu
 		this.xSelect = d3.select(this.container).append('select')
 			.classed('dimensionSelect x', true)
 			.style('position','absolute')
@@ -266,7 +266,7 @@
 				d3.selectAll(".lineSelectCheckbox").each(function(d) {
 					const cb = d3.select(this);
 					if(cb.property("value").startsWith(cbgroup.property("value")))
-						cb.property('checked', cbgroup.property("checked"));
+						cb.property("checked", cbgroup.property("checked"));
 				});
 			});
 			self.updateLineVisibility();
@@ -314,13 +314,12 @@
 				.classed("lineGroupSelect checkboxtext", true)
 				.text((d) => "All " + d);
 
-		/** Measures checkboxes **/
+		/** Measure checkboxes **/
 
 		//Table containing the checkboxes
 		this.ySelectTable = self.tableContainer
 			.append('table')
-				.classed("lineSelect y", true)
-				//.property("border","1px");
+				.classed("lineSelect y", true);
 
 		//Rows in the checkbox table
 		this.yTableRows = this.ySelectTable.selectAll('tr')

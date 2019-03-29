@@ -183,12 +183,32 @@
 		this.sortOrderContainer.append('br');
 		/** @type {DOM (input/checkbox)} The node for toggling sort order */
 		this.sortOrderNode = this.sortOrderContainer.append('input')
-			.attr('type', 'checkbox')
-			.on('input', function() {
+			.attr("type", "checkbox")
+			.on('change', function() {
+				console.log(self.selection);
 				self.selection.sort(self.getSortComparator());
+				console.log(self.selection);
 				self.populateResults();
 			})
 			.node();
+
+			//grouping controls
+			/** @type {d3.selection} The control panel for toggling sort order */
+			this.groupsortingContainer = this.header.append('div')
+				.classed('controlPanel groupingOption', true);
+			this.groupsortingContainer.append('span')
+				.classed('label', true)
+				.text("Group equal values:");
+			this.groupsortingContainer.append('br');
+			/** @type {DOM (input/checkbox)} The node for toggling sort order */
+			this.groupsortingNode = this.groupsortingContainer.append('input')
+				.attr('type', 'checkbox')
+				.on('change', function() {
+					console.log(self.selection);
+					//self.selection.sort(self.getSortComparator());
+					//self.populateResults();
+				})
+				.node();
 
 		//imageSize controls
 		/** @type {d3.selection} The control panel for controlling image size */
