@@ -794,6 +794,24 @@
 		}
 	}
 
+	CINEMA_COMPONENTS.ImageSpread.prototype.getOptionsData = function() {
+		return {
+			pageSize: this.pageSizeNode.value,
+			sortDimension: this.sortNode.value,
+			sortOrderIsReversed: this.sortOrderNode.checked,
+			sortOrderIsGrouped: this.groupsortingNode.checked,
+			imageSize: this.imageSizeNode.value
+		};
+	}
+
+	CINEMA_COMPONENTS.ImageSpread.prototype.setOptionsData = function(dataObject) {
+		d3.select(this.pageSizeNode).property("value", dataObject.pageSize);
+		d3.select(this.sortNode).property("value", dataObject.sortDimension);
+		d3.select(this.sortOrderNode).property("checked", dataObject.sortOrderIsReversed);
+		d3.select(this.groupsortingNode).property("checked", dataObject.sortOrderIsGrouped);
+		d3.select(this.imageSizeNode).property("value", dataObject.imageSize);
+	}
+
 	/**
 	 * Given the number of pages needed and the currently selected page, return
 	 * a list of objects represented the pageNav buttons to show

@@ -798,7 +798,8 @@
 		//Retrieve all uncertainty dimensions
 		var uncertaintyDims = [];
 		for(var i=0, len=this.dimensions.length; i < len; i++)
-			if(startsWithPrefixes(self.dimensions[i], this.allowedUPrefixes))
+			if(startsWithPrefixes(self.dimensions[i], this.allowedUPrefixes)
+			&& !startsWithPrefixes(self.dimensions[i], this.excludedDim))
 				uncertaintyDims.push(this.dimensions[i]);
 
 		//Retrieve all possible values of the current dimension
@@ -899,6 +900,40 @@
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.getVisibileLineCount = function() {
 		return this.plotData.series.filter(entry => entry.show).length;
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.getCheckboxStates = function() {
+		var lineGroupSelectData = [];
+		d3.selectAll(".lineGroupSelectCheckbox").each(function(d) {
+			const cb = d3.select(this);
+			lineGroupSelectData.push([cb.property("value"), cb.property("checked")]);
+		});
+		var lineSelectData = [];
+		d3.selectAll(".lineSelectCheckbox").each(function(d) {
+			const cb = d3.select(this);
+			lineSelectData.push([cb.property("value"), cb.property("checked")]);
+		});
+
+		return {lineGroup: lineGroupSelectData, line: lineSelectData};
+	}
+
+	CINEMA_COMPONENTS.LineChart.prototype.setCheckboxStates = function(dataObject) {
+		d3.selectAll(".lineSelectCheckbox").each(function(d) {
+			const cb = d3.select(this);
+			for(var i = 0; i < dataObject.line.length; i++) {
+				if(dataObject.line[i][0] === cb.property("value"))
+					cb.property("checked", dataObject.line[i][1]) ;
+			}
+		});
+		var lineGroupSelectData = [];
+		d3.selectAll(".lineGroupSelectCheckbox").each(function(d) {
+			const cb = d3.select(this);
+			for(var i = 0; i < dataObject.lineGroup.length; i++) {
+				if(dataObject.lineGroup[i][0] === cb.property("value"))
+					cb.property("checked", dataObject.lineGroup[i][1]);
+			}
+		});
+		this.updateLineVisibility();
 	}
 
 })();
