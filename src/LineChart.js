@@ -902,6 +902,9 @@
 		return this.plotData.series.filter(entry => entry.show).length;
 	}
 
+	/**
+	 * Get the state of all checkboxes
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.getCheckboxStates = function() {
 		var lineGroupSelectData = [];
 		d3.selectAll(".lineGroupSelectCheckbox").each(function(d) {
@@ -917,6 +920,9 @@
 		return {lineGroup: lineGroupSelectData, line: lineSelectData};
 	}
 
+	/**
+	 * Set the state of all checkboxes
+	 */
 	CINEMA_COMPONENTS.LineChart.prototype.setCheckboxStates = function(dataObject) {
 		d3.selectAll(".lineSelectCheckbox").each(function(d) {
 			const cb = d3.select(this);
@@ -937,33 +943,3 @@
 	}
 
 })();
-
-//CINEMA_COMPONENTS.LineChart.prototype.getPicturePathsForPoint = function() {
-//	var self = this;
-
-//	if(self.currentlySelectedPoint === {})
-//		return([]);
-//	else {
-//		var imagePaths = [];
-//		self.db.data.forEach(function(dataRow) {
-//			if(dataRow[self.xDimension] == self.currentlySelectedPoint.date) {
-//				for (var key in dataRow) {
-//					if(key.startsWith("FILE_"))
-//						if(key.replace(/FILE_/gi,"") === self.currentlySelectedPoint.umeasurename.replace(self.allowedUPrefixesRegEx,""))
-//							imagePaths.push(dataRow[key]);
-//				}
-//			}
-//		});
-//		return imagePaths;
-//	}
-//}
-
-//Create a regular expression checking for allowed prefixes
-//this.allowedUPrefixesRegEx = "/";
-//self.allowedUPrefixes.forEach(function(value,index) {
-//	if(index === 0)
-//		self.allowedUPrefixesRegEx += value;
-//	else
-//		self.allowedUPrefixesRegEx += "|" + value;
-//});
-//this.allowedUPrefixesRegEx = new RegExp(self.allowedUPrefixesRegEx + "/gi");

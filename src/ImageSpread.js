@@ -794,6 +794,9 @@
 		}
 	}
 
+	/**
+	 * Get the state of all inputs
+	 */
 	CINEMA_COMPONENTS.ImageSpread.prototype.getOptionsData = function() {
 		return {
 			pageSize: this.pageSizeNode.value,
@@ -804,6 +807,9 @@
 		};
 	}
 
+	/**
+	 * Set the state of all inputs
+	 */
 	CINEMA_COMPONENTS.ImageSpread.prototype.setOptionsData = function(dataObject) {
 		d3.select(this.pageSizeNode).property("value", dataObject.pageSize);
 		d3.select(this.sortNode).property("value", dataObject.sortDimension);
