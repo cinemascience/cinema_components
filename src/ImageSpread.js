@@ -816,6 +816,8 @@
 		d3.select(this.sortOrderNode).property("checked", dataObject.sortOrderIsReversed);
 		d3.select(this.groupsortingNode).property("checked", dataObject.sortOrderIsGrouped);
 		d3.select(this.imageSizeNode).property("value", dataObject.imageSize);
+		d3.select(this.container).select('.controlPanel.imageSize .label')
+			.text("Image Size: " + dataObject.imageSize + "px");
 	}
 
 	/**
