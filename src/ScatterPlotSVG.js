@@ -3,13 +3,13 @@
 	/**
 	 * CINEMA_COMPONENTS
 	 * SCATTER_PLOT_SVG
-	 * 
+	 *
 	 * The ScatterPlotSVG Component for the CINEMA_COMPONENTS library.
 	 * Contains the constructor for the ScatterplotSVG Component:
 	 * A subclass of ScatterPlot which draws data using SVG
-	 * 
+	 *
 	 * @exports CINEMA_COMPONENTS
-	 * 
+	 *
 	 * @author Cameron Tauxe
 	 */
 
@@ -87,7 +87,7 @@
 		var plottable = this.getPlottablePoints(this.selection);
 		//Update warningReadout
 		if (plottable.length < this.selection.length)
-			this.warningReadout.text((this.selection.length-plottable.length) + 
+			this.warningReadout.text((this.selection.length-plottable.length) +
 				" point(s) could not be plotted (because they contain NaN or undefined values).");
 		else
 			this.warningReadout.text('');

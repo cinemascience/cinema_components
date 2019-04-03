@@ -1,4 +1,4 @@
-FILES=Database.js Component.js Glyph.js ImageSpread.js Pcoord.js PcoordCanvas.js PcoordSVG.js Query.js ScatterPlot.js ScatterPlotCanvas.js ScatterPlotSVG.js
+FILES=Database.js Component.js Glyph.js ImageSpread.js Pcoord.js PcoordCanvas.js PcoordSVG.js Query.js ScatterPlot.js ScatterPlotCanvas.js ScatterPlotSVG.js LineChart.js
 BUILD_OPTS=$(shell if [ -e build_options.local ]; then echo build_options.local; else echo build_options; fi)
 VERSION=$(shell grep version $(BUILD_OPTS) | sed -e 's/^version //')
 MINIFIER=$(shell grep minifier $(BUILD_OPTS) | sed -e 's/^minifier //')

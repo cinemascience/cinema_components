@@ -3,13 +3,13 @@
 	/**
 	 * CINEMA_COMPONENTS
 	 * PCOORD
-	 * 
+	 *
 	 * The Pcoord Component for the CINEMA_COMPONENTS library.
 	 * Contains the constructor for Parallel Coordinates Components (e.g. PcoordSVG, PcoordCanvas)
 	 * It is a sublcass of Component and contains methods and fields common to all Parallel Coordinates Components
-	 * 
+	 *
 	 * @exports CINEMA_COMPONENTS
-	 * 
+	 *
 	 * @author Cameron Tauxe
 	 */
 
@@ -54,7 +54,7 @@
 		/***************************************
 		 * SIZING
 		 ***************************************/
-		
+
 		/** @type {CINEMA_COMPONENTS.Margin} Override default margin */
 		this.margin = new CINEMA_COMPONENTS.Margin(30,10,10,10);
 		/** @type {number} the room left at the bottom of the chart for NaN values */
@@ -91,7 +91,7 @@
 		 * 'axisorderchange': Triggered when the axis ordering is manually changed
 		 *     (called with the list of the dimensions in the new order)
 		 */
-		this.dispatch = d3.dispatch("selectionchange","mouseover","click","axisorderchange");
+		this.dispatch = d3.dispatch("selectionchange", "mouseover", "click", "axisorderchange");
 
 		/***************************************
 		 * SCALES
@@ -102,9 +102,9 @@
 		this.x = d3.scalePoint()
 			.domain(this.dimensions)
 			.range([0,this.internalWidth])
-			.padding(1);;
+			.padding(1);
 
-		/** @type {Object(d3.scale)} 
+		/** @type {Object(d3.scale)}
 		 * Scales for each dimension axis on the chart. One scale for each dimension */
 		this.y = {};
 		this.dimensions.forEach(function (d) {
@@ -220,7 +220,7 @@
 			.style('width',this.parentRect.width+'px')
 			.style('height',this.parentRect.height+'px');
 
-		/** @type {boolean} Indicates if the lines on the chart should be smooth(curved) or not 
+		/** @type {boolean} Indicates if the lines on the chart should be smooth(curved) or not
 		 * Be sure to call redrawPaths() after changing this so it takes effect
 		*/
 		this.smoothPaths = true;
@@ -394,7 +394,7 @@
 		this.axes.each(function(d) {
 			d3.select(this).select('.axis').call(d3.axisLeft().scale(self.y[d]));
 		});
-		
+
 		this.updateSelection(true);
 	}
 
@@ -460,6 +460,7 @@
 	CINEMA_COMPONENTS.Pcoord.prototype.setSelection = function(selection) {
 		var ranges = {};
 		var self = this;
+		console.log(selection);
 		this.dimensions.forEach(function(d) {
 			ranges[d] = d3.extent(selection, function(i) {
 				return self.getYPosition(d, self.db.data[i]);
@@ -636,10 +637,40 @@
 	 */
 	CINEMA_COMPONENTS.Pcoord.prototype.getYPosition = function(d, p) {
 		if (!this.db.isStringDimension(d) && isNaN(p[d]))
-			//If the value is NaN on a linear scale, return internalHeight as the position 
+			//If the value is NaN on a linear scale, return internalHeight as the position
 			//(to place the line on the NaN tick)
 			return this.internalHeight;
 		return this.y[d](p[d]);
+	}
+
+	/**
+	 * Get the y-coordinate of the line for data point p on dimension d
+	 * @param {Object} dimObject - dimension / startDate / endDate selected}
+	 */
+	CINEMA_COMPONENTS.Pcoord.prototype.addSelectionByDimensionValues = function(dimObject) {
+		var self = this;
+
+		//Get pixel values of given dates
+		var startpx = this.y[dimObject.dimension](dimObject.startDate)
+		var endpx = this.y[dimObject.dimension](dimObject.endDate)
+
+		//avoid 0px selection
+		if(startpx === endpx) {
+			startpx += 1;
+			endpx -= 1;
+		}
+
+		//Check if inside boundary
+		var range = [
+			Math.min(endpx,self.internalHeight),
+			Math.max(startpx,0)
+		]
+
+		//Set selection
+		self.axisContainer
+		.select('.axisGroup[dimension='+dimObject.dimension+']')
+		.select('g.brush')
+			.call(self.brush.move, function() {return range;});
 	}
 
 	/**
