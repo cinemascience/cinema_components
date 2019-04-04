@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.6.2
+## Version 2.7.0
 ## Author: Cameron Tauxe
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
@@ -285,6 +285,8 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
 # Changelog
+### Version 2.7.0
+- Added new `multiline` component.
 ### Version 2.6.1
 - Fixed incorrect behavior when databases had undefined values in the first row
 ### Version 2.6
