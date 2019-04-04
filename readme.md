@@ -17,6 +17,8 @@ A component that provides an interface for defining a custom data point and quer
 A component for viewing data on a Scatter plot (rendered with SVG)
 ### ScatterPlotCanvas
 A component for viewing data on a Scatter plot (rendered with Canvas)
+### LineChart
+A component for viewing multiple parameters on a single line chart
 
 ## Usage
 Below is a simple example of a webpage that uses a pcoordSVG component to control the display of an ImageSpread component

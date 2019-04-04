@@ -6,6 +6,8 @@
 	 *
 	 * The LineChart Component for the CINEMA_COMPONENTS library.
 	 * It is a sublcass of Component
+     *
+     * This component views multiple parameters as a line chart.
 	 *
 	 * @exports CINEMA_COMPONENTS
 	 *
