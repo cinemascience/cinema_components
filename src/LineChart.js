@@ -36,69 +36,8 @@
 	CINEMA_COMPONENTS.LINECHART_INCLUDED = true;
 
 	/**
-	 * Retrieve if a value is contained in an array
-	 * @param {ANY} needle - Element to search for in Array
-	 */
-	var containedInArray = function(needle) {
-		//Per spec, the way to identify NaN is that it is not equal to itself
-		var findNaN = needle !== needle;
-		var indexOf;
-
-		if(!findNaN && typeof Array.prototype.indexOf === 'function') {
-			indexOf = Array.prototype.indexOf;
-		}
-		else {
-			indexOf = function(needle) {
-				var i = -1, index = -1;
-
-				for(i = 0; i < this.length; i++) {
-					var item = this[i];
-
-					if((findNaN && item !== item) || item === needle) {
-						index = i;
-						break;
-					}
-				}
-
-			return index;
-			};
-		}
-
-		return indexOf.call(this, needle) > -1;
-	};
-
-	/** @type {RegExp} - Regular Expression to check for scientific notation*/
-	const scientificNotationRegExp = new RegExp(/^((\d)+|(\d+\.\d+))(e|E)(\+|-)(\d)+$/);
-
-	/**
-	 * Check if numberString is in scientifc notation
-	 * @param {String} numberString - String which might contain a scientific notation
-	 */
-	var isInScientificNotation = function(numberString) {
-		if(typeof numberString === 'string' || numberString instanceof String)
-			if(scientificNotationRegExp.test(numberString))
-				return true;
-		return false;
-	}
-
-	/**
-	 * Checks if a dimension name starts with a string from the list
-	 * @type {String} dimension - name of the dimension to check
-	 * @type {Array} prefixList - list of prefixes
-	 */
-	var startsWithPrefixes = function(dimension, prefixList) {
-		if(typeof prefixList === 'undefined')
-			return false;
-		for(i = 0; i < prefixList.length; i++) {
-			if(dimension.startsWith(prefixList[i]))
-				return true;
-		}
-		return false;
-	}
-
-	/**
 	 * Abstract constructor for LineCart Components
-	 * Represents a component for displaying and interacting with a database on a multiple lines chart
+	 * Represents a component for displaying and interacting with a database on a chart with multiple lines
 	 * @param {DOM} parent - The DOM object to build this component inside of
 	 * @param {CINEMA_COMPONENTS.Database} database - The database behind this component
 	 * @param {RegExp} filterRegex - A regex to determine which dimensions to NOT show on the component
@@ -157,21 +96,13 @@
 		 ***************************************/
 
 		/** @type {d3.dispatch} Hook for events on chart
-		 * Set handlers with on() function. Ex: this.dispatch.on('mousemove',handlerFunction(i))
-		 * 'mousemove': Triggered when movinge mouse over the svg plane.
-		 *     (called with the index of moused move data and a reference to the mouse event)
-		 * 'mouseenter': Triggered when a mouse enters the svg plane.
-		 *     (called with the index of moused enter data and a reference to the mouse event)
-		 * 'mouseleave': Triggered when a mouse leaves the svg plane.
-		 *     (called with the index of mouse leave data and a reference to the mouse event)
-		 * 'mousedown': Triggered when the left mouse button is pushed down.
-		 *     (called with the index of mouse down data and a reference to the mouse event)
-		 * 'mouseup': Triggered when the left mouse button is released.
+		 * Set handlers with on() function.
+		 * 'selectionchanged': Triggered when the user makes a selection.
 		 *     (called with the index of mouse up data and a reference to the mouse event)
 		 * 'xchanged': Triggered when the x dimension being viewed is changed
 		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("selectionchanged","xchanged");
+		this.dispatch = d3.dispatch("selectionchanged", "xchanged");
 
 		/***************************************
 		 * DRAGGING
@@ -196,7 +127,7 @@
 		 /** Main Container **/
 
 		//Give plot container a class
-		d3.select(this.container).classed('MULTILINE_PLOT',true);
+		d3.select(this.container).classed('LINE_CHART',true);
 
 		//Add a div as main container to add other components later
 		this.mainContainer = d3.select(this.container).append('div')
@@ -238,7 +169,7 @@
 		//Define actions when a new Dimension is selected
 		d3.select(this.xSelect).on('input',function() {
 			self.xDimension = this.value;
-			self.updateData();
+			self.prepareData();
 			self.x = (self.db.isStringDimension(self.xDimension) ? d3.scalePoint() : d3.scaleLinear())
 				.domain(self.plotData.dimensionDomain);
 			self.xAxisContainer.select('.axis')
@@ -539,7 +470,7 @@
 							.attr("opacity", 0.0)
 							.remove();
 
-					this.dispatch.call('selectionchanged');
+					this.dispatch.call('selectionchanged',self, self.dragResult);
 				}
 			}
 
@@ -640,7 +571,7 @@
 
 		//Save the width of the axis line to adjust the graph later on
 		this.axislineWidth = parseInt(getComputedStyle(
-			document.querySelector('.CINEMA_COMPONENT.MULTILINE_PLOT .axis line'))
+			document.querySelector('.CINEMA_COMPONENT.LINE_CHART .axis line'))
 			.getPropertyValue('stroke-width'), 10);
 
 		//Set the position of both axis
@@ -753,14 +684,6 @@
 	}
 
 	/**
-	 * Should be called whenever the data in the associated database changes.
-	 */
-	CINEMA_COMPONENTS.LineChart.prototype.updateData = function() {
-		var self = this;
-		self.prepareData();
-	};
-
-	/**
 	 * Redraw the chart path
 	 */
 	CINEMA_COMPONENTS.LineChart.prototype.redraw = function() {
@@ -790,10 +713,6 @@
 				.call(d3.axisLeft().scale(self.y));
 
 		//Recalculate chartline method
-		//self.chartline
-		//	.x((d, i) => self.x(self.plotData.dates[i]))
-		//	.y(d => self.y(d));
-
 		self.chartline
 			.x((d, i) => (this.plotData.isNonNumberDomain ?
 				self.x(this.plotData.dimensionDomain[i]) :
@@ -982,6 +901,67 @@
 			}
 		});
 		this.updateLineVisibility();
+	}
+
+	/**
+	 * Retrieve if a value is contained in an array
+	 * @param {ANY} needle - Element to search for in Array
+	 */
+	var containedInArray = function(needle) {
+		//Per spec, the way to identify NaN is that it is not equal to itself
+		var findNaN = needle !== needle;
+		var indexOf;
+
+		if(!findNaN && typeof Array.prototype.indexOf === 'function') {
+			indexOf = Array.prototype.indexOf;
+		}
+		else {
+			indexOf = function(needle) {
+				var i = -1, index = -1;
+
+				for(i = 0; i < this.length; i++) {
+					var item = this[i];
+
+					if((findNaN && item !== item) || item === needle) {
+						index = i;
+						break;
+					}
+				}
+
+			return index;
+			};
+		}
+
+		return indexOf.call(this, needle) > -1;
+	};
+
+	/** @type {RegExp} - Regular Expression to check for scientific notation*/
+	const scientificNotationRegExp = new RegExp(/^((\d)+|(\d+\.\d+))(e|E)(\+|-)(\d)+$/);
+
+	/**
+	 * Check if numberString is in scientifc notation
+	 * @param {String} numberString - String which might contain a scientific notation
+	 */
+	var isInScientificNotation = function(numberString) {
+		if(typeof numberString === 'string' || numberString instanceof String)
+			if(scientificNotationRegExp.test(numberString))
+				return true;
+		return false;
+	}
+
+	/**
+	 * Checks if a dimension name starts with a string from the list
+	 * @type {String} dimension - name of the dimension to check
+	 * @type {Array} prefixList - list of prefixes
+	 */
+	var startsWithPrefixes = function(dimension, prefixList) {
+		if(typeof prefixList === 'undefined')
+			return false;
+		for(var i = 0; i < prefixList.length; i++) {
+			if(dimension.startsWith(prefixList[i]))
+				return true;
+		}
+		return false;
 	}
 
 })();

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--
+A demonstration of some basic usage of the LineChart component
+
+Copyright 2017 Los Alamos National Laboratory
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+This is based on the example of the Nutrient Explorer, copyright 2012, Kai
+Chang, and is licensed appropriately.
+-->
+
+<html lang='en'>
+<head>
+	<title>Line Chart Example</title>
+	<meta charset="utf-8">
+	<meta name='author' content="Robin Maack">
+	<!--Import d3-->
+	<script src="https://d3js.org/d3.v5.min.js"></script>
+	<!--Import library-->
+	<script src = 'lib/CinemaComponents.v2.7.0.min.js'></script>
+	<!--Include Component's CSS-->
+	<link rel='stylesheet' href='lib/LineChart.css'>
+</head>
+<body>
+	<div id="header">
+		<h1>Line Chart Example</h1>
+		<h2>Selected Data: not selected</h2>
+	</div>
+	<!--Div to put the chart into-->
+	<div id="componentArea"></div>
+
+	<script>
+		var chart;
+
+		//Create Database
+		var db = new CINEMA_COMPONENTS.Database('data/LineChartTest.cdb',doneLoading);
+		var loaded = false;
+
+		/**
+		 * Loading callback function.
+		 * Called when the database is done loading.
+		 */
+		function doneLoading() {
+			loaded = true;
+
+			//Create chart from database
+			// /^FILE/ is a regex filtering out the FILE dimension
+			chart = new CINEMA_COMPONENTS.LineChart(
+				d3.select('#componentArea').node(), db, /^FILE/, ["u_avg_"], []);
+
+			//Dispatch functions
+			chart.dispatch
+				.on('selectionchanged', handleSelectionChanged)
+				.on('xchanged', function(d){/*d is the currently selected X dimension*/});
+
+			window.onresize()
+		} //end doneLoading()
+
+		//Update the height and width of the div node carrying the chart
+		function updateViewContainerSize() {
+			var topRect = d3.select('#header').node().getBoundingClientRect();
+			d3.select('#componentArea').style('height',window.innerHeight-topRect.height+'px');
+			d3.select('#componentArea').style('width',topRect.width+'px');
+		}
+
+		//Set the currently selected data to the h2 header
+		function handleSelectionChanged(selectionResult) {
+			d3.select("h2").text("Selected Data: [" + selectionResult.dimension
+			+ "] " + selectionResult.startDate + " - " + selectionResult.endDate);
+		}
+
+		/**
+		 * It is important to call updateSize() whenever the size of the
+		 * chart's container may change.
+		 */
+		window.onresize = function(){
+			if (loaded) {
+				updateViewContainerSize();
+				chart.updateSize();
+			}
+		}
+	</script>
+</body>
