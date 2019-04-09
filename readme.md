@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.7.0
+## Version 2.7.1
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
 # Components
@@ -288,14 +288,14 @@ If there are multiple pages of data the container also has a div classed '.pageN
 ## LineChart
 LineChart is a component for viewing aggregate function as multiple lines in a chart.
 ### Usage
-The aggregate functions will be shown as lines and every line is selectable with the checkboxes. X-axis can be changed by using the drop-down menu on the bottom. Selections can be made by using the dragging motion, while holding the left mouse button down.
+The aggregate functions will be shown as lines and every line is selectable using the checkboxes. The X-axis can be changed by using the drop-down menu on the bottom. Selections can be made by using the dragging motion, while holding the left mouse button down.
 ### Events
 - **'selectionchanged'** Triggered when a dragging gesture was successful and selected a range of values. Called with the start and end date, as well as the used dimension.
 - **'xchanged'** Triggered when the x-axis is changed. Called with the new dimension.a
 ### Structure
 In the container is a div classed '.mainContainer'. The mainContainer contains a div for lists of checkboxes(.tableContainer), the plot(.lineChart) and the dropdown menu for the x-axis(.dimensionSelect.x).
 
-The tableContainer contains two tables containing the group checkboxes(.lineSelect .yGroup) and the single checkboxes(lineSelect y)
+The tableContainer contains two tables containing the group checkboxes(.lineSelect .yGroup) and the single checkboxes(.lineSelect .y)
 
 The linechart consists of an svg plane.
 ### Fields
