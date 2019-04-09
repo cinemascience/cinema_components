@@ -285,37 +285,68 @@ If there are multiple pages of data the container also has a div classed '.pageN
 - **createModalImg()** An event handler for img element that will create a modal overlay of the image when it is clicked.
 - **updatePageNav()** Calculate the number of pages needed to display all the selected results and rebuild the page navigation widget.
 
+## LineChart
+LineChart is a component for viewing aggregate function as multiple lines in a chart.
+### Usage
+The aggregate functions will be shown as lines and every line is selectable with the checkboxes. X-axis can be changed by using the drop-down menu on the bottom. Selections can be made by using the dragging motion, while holding the left mouse button down.
+### Events
+- **'selectionchanged'** Triggered when a dragging gesture was successful and selected a range of values. Called with the start and end date, as well as the used dimension.
+- **'xchanged'** Triggered when the x-axis is changed. Called with the new dimension.a
+### Structure
+In the container is a div classed '.mainContainer'. The mainContainer contains a div for lists of checkboxes(.tableContainer), the plot(.lineChart) and the dropdown menu for the x-axis(.dimensionSelect.x).
+
+The tableContainer contains two tables containing the group checkboxes(.lineSelect .yGroup) and the single checkboxes(lineSelect y)
+
+The linechart consists of an svg plane.
+### Fields
+- **allowedUPrefixes (Array)** Array of shown aggregate function prefixes.
+- **excludedDim (Array)** Array of hidden aggregate function prefixes.
+- **margin (CINEMA_COMPONENTS.Margin)** Distance to the edges of the mainContainter.
+- **axismargin (CINEMA_COMPONENTS.Margin)** Gap of the plot axis to div origin.
+- **currentlySelectedPoint (Object)** Last selection of dates on the x-axis.
+### Methods
+- **updateSize()** Call when the viewport size changes.
+- **getMousePositionData()** Get the currently selected datapoint on the current mouse event
+- **redraw()** Redraw the plot.
+- **setLineVisibility = function(name, isShown)** Set a lines visibility.
+- **getVisibileLineCount()** Calculate the number of visible lines.
+- **getCheckboxStates()** Get the state of all checkboxes
+- **prepareData()** Has to be called when data or an axis changes.
+
 # Changelog
+### Version 2.7.1
+- Added example code for the LineChart component.
+- Added support for string dimensions for the LineChart component.
 ### Version 2.7.0
-- Added new `multiline` component.
+- Added new LineChart component.
 ### Version 2.6.1
-- Fixed incorrect behavior when databases had undefined values in the first row
+- Fixed incorrect behavior when databases had undefined values in the first row.
 ### Version 2.6
-- Added filter parameter to Database constructor
-- Added filterSelection function to Pcoord
+- Added filter parameter to Database constructor.
+- Added filterSelection function to Pcoord.
 ### Version 2.5
-- Added ability to refresh data from CSV file and update database/components
-- Fixed Pcoord Component incorrectly rebuilding its axes when resizing
+- Added ability to refresh data from CSV file and update database/components.
+- Fixed Pcoord Component incorrectly rebuilding its axes when resizing.
 ### Version 2.4.3
 - Fixed incorrect verification of databases in version 1.2 of the Spec.
 ### Version 2.4.2
 - Text on the labels in Parallel Coordinates component no longer overlaps when there is not enough space. If a label has been cut-off, drag it to see the full name.
 - In Scatter Plot component, points on the edges are no longer cut-off.
 ### Version 2.4.1
-- Fixed Database not loading files in Safari
+- Fixed Database not loading files in Safari.
 ### Version 2.4
-- Added PcoordCanvas and ScatterPlotCanvas components
-- Databases now allow for axis_order.csv files to not specify every dimension
-- Added 'xchanged' and 'ychanged' events to ScatterPlot
+- Added PcoordCanvas and ScatterPlotCanvas components.
+- Databases now allow for axis_order.csv files to not specify every dimension.
+- Added 'xchanged' and 'ychanged' events to ScatterPlot.
 ### Version 2.3
-- Added ScatterPlotSVG Component
-- Databases now verfiy that there are at least two dimensions when error-checking
+- Added ScatterPlotSVG Component.
+- Databases now verfiy that there are at least two dimensions when error-checking.
 ### Version 2.2
-- Databases now support extra axis ordering information (in axis_order.csv files)
-- Added setAxisOrder to Pcoord Component
-- Added dispatch 'axisorderchanged' to Pcoord Component
+- Databases now support extra axis ordering information (in axis_order.csv files).
+- Added setAxisOrder to Pcoord Component.
+- Added dispatch 'axisorderchanged' to Pcoord Component.
 ### Version 2.1
-- Added ImageSpread and Query components (ported over from pcoord_viewer project)
-- Added destroy() function to Component
+- Added ImageSpread and Query components (ported over from pcoord_viewer project).
+- Added destroy() function to Component.
 ### Version 2.0
-- First release of this major rewrite
+- First release of this major rewrite.
