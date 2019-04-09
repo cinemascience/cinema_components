@@ -1,3 +1,27 @@
+body {
+	height: 90%;
+	margin: 0
+}
+
+#header {
+	background: rgb(59, 167, 222);
+	padding: 10px 0px 20px;
+	color: white;
+}
+
+#header h1, h2 {
+	text-align: center;
+	margin: initial;
+}
+
+#componentArea {
+	margin: 0px 0px;
+	padding: 0px;
+	background-color: whitesmoke;
+	overflow: hidden;
+	position: fixed;
+}
+
 .CINEMA_COMPONENT.LINE_CHART {
 	background: #e2e2e2;
 }
