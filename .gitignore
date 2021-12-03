@@ -4,3 +4,4 @@ build.sh
 *.min.js
 build
 build_options.local
+*.idea/**
