@@ -188,11 +188,11 @@ Inside the container is a div classed '.pathContainer' and an SVG element classe
 - **overlayData (CINEMA_COMPONENTS.ExtraData[])** An array of extra data to be overlaid on the chart. Please do not edit this directly and use the **setOverlayData()** function instead.
 - **x (d3.scalePoint)** Scale for the x axis on the chart. Maps dimensions to a position along the width of the chart.
 - **y (Object (d3.scale))** An object (keyed by dimension names) containing scales for each dimension which map a value to a height on the chart
-- **brushExtents (Object (arrays))** An object (keyed by dimension names) containing arrays for each dimension representing the extents (in pixels) of the selection along each axis. Please do not edit this directly.
+- **brushSelections (Object (arrays))** An object (keyed by dimension names) containing arrays for each dimension representing the extents (in pixels) of the selection along each axis. Please do not edit this directly.
 - **dontUpdateSelectionOnBrush (boolean)** If true, the selection will not changed when brushing along an axis. Useful if changing multiple brushes at once to avoid extraneous updates.
 - **smoothPaths (boolean)** Whether or not the paths in the chart should be drawn with smooth curves. Be sure to call redrawPaths() after changing this.
 ### Methods
-- **updateSelection()** Update the selection according to the state of brushExtents. If the selection has changed, will trigger the 'selectionchange' event.
+- **updateSelection()** Update the selection according to the state of brushSelections. If the selection has changed, will trigger the 'selectionchange' event.
 - **setSelection(selection)** Set the selections on each axis to encapsulate all the data represented by the given list of indices. Note that the final selection may contain more data than is listed in the given array.
 - **filterSelection(filter)** Sets the chart's selection to match the ranges defined in the given filter object. Just like the filter for a database, each key in the object is the name of a numeric dimension in the database and each value is a 2-length array definiing the minimum and maximum allowed values.
 - **setHighlightedPaths(indices)** Set the highlighted data to the data with the given indices.

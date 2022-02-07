@@ -58,8 +58,12 @@
 		 * DATA
 		 ***************************************/
 
-		//override this.dimensions to include only numeric dimensions
-		this.dimensions = this.dimensions.filter(function(d) {
+		// Exclude files
+		this.dimensions = this.db.dimensions.filter(function(d) {
+			return !d.includes("FILE");
+		});
+		// Handle numeric and string dimensions separately
+		this.numeric_dimensions = this.dimensions.filter(function(d) {
 			return !self.db.isStringDimension(d);
 		});
 
@@ -93,7 +97,7 @@
 		//Input sliders for each dimension range from 0 to 100
 		//So create scales to scale a slider's value to a value in its dimension
 		this.scales = {};
-		this.dimensions.forEach(function(d) {
+		this.numeric_dimensions.forEach(function(d) {
 			self.scales[d] = d3.scaleLinear()
 				.domain([0,100])
 				.range(self.db.dimensionDomains[d]);
@@ -160,8 +164,14 @@
 			.style('position','absolute')
 			.on('input',function(d) {
 				if (this.checked) {
-					var slider = d3.select(this.parentNode).select('input[type="range"]');
-					self.custom.data[d] = self.scales[d](slider.node().value);
+					// only one of these should be present, depending on whether the variable is numeric or text
+					var slider = d3.select(this.parentNode).select('input[type="range"]').node();
+					var text = d3.select(this.parentNode).select('input[type="text"]').node();
+					if (slider!== null) {
+						self.custom.data[d] = self.scales[d](slider.value);
+					} else if (text !== null) {
+						self.custom.data[d] = text.value;
+					}
 				}
 				else {
 					delete self.custom.data[d];
@@ -169,8 +179,10 @@
 				self.updateBounds();
 				self.dispatch.call('customchange',self,[self.custom,self.upper,self.lower]);
 			});
-		//slider
-		this.rows.append('input')
+		//sliders for numeric variables
+		this.rows.filter(
+			 function(d, i){return !self.db.isStringDimension(self.dimensions[i]);})
+			.append('input')
 			.attr('type','range')
 			.attr('min',0)
 			.attr('max',100)
@@ -182,6 +194,21 @@
 				if (!check.node().checked)
 					check.node().checked = true;
 				self.custom.data[d] = self.scales[d](this.value);
+				self.updateBounds();
+				self.dispatch.call('customchange',self,[self.custom,self.upper,self.lower]);
+			});
+		//textboxes for string variables
+		this.rows.filter(function(d, i){return self.db.isStringDimension(self.dimensions[i]);})
+			.append('input')
+			.attr('type','text')
+		    .on('input',function(d){
+				var check = d3.select(this.parentNode).select('input[type="checkbox"]');
+				if (!check.node().checked)
+					check.node().checked = true;
+				self.custom.data[d] = this.value;
+				/*this should probably trigger different functions
+				  but I'm not 100% sure where the filtering happens of the image spread?
+				 */
 				self.updateBounds();
 				self.dispatch.call('customchange',self,[self.custom,self.upper,self.lower]);
 			});
@@ -205,15 +232,15 @@
 
 	/**
 	 * Update upper and lower data depending on custom data and current threshold value
+	 * Only consider numeric variables.
 	 */
 	CINEMA_COMPONENTS.Query.prototype.updateBounds = function() {
 		var self = this;
 		var threshold = this.thresholdNode.value;
-		//average difference along each dimension
-		var avg = (threshold/d3.keys(this.custom.data).length)*100;
+		var avg = (threshold/self.numeric_dimensions.length)*100;
 		this.upper.data = {};
 		this.lower.data = {};
-		this.dimensions.forEach(function(d) {
+		this.numeric_dimensions.forEach(function(d) {
 			if (self.custom.data[d] !== undefined) {
 				var s = self.scales[d];
 				self.lower.data[d] = s(Math.max(s.invert(self.custom.data[d])-avg,0));

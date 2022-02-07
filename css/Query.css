@@ -38,3 +38,7 @@
 	right: 180px;
 	transform: translateY(-100%);
 }
+.CINEMA_COMPONENT.QUERY .inputRow input[type="text"] {
+	right: 10px;
+	width: 150px;
+}

@@ -133,9 +133,19 @@
 	 */
 	CINEMA_COMPONENTS.PcoordSVG.prototype.redrawOverlayPaths = function() {
 		var self = this;
-		//Bind to overlayData and update
+		// The overlays dont make sense for string variables
+		// so delete the string variables before drawing.
+		// Use a copy of overlayData to avoid breaking other things that use it.
+		var data = JSON.parse(JSON.stringify(this.overlayData));
+		data.forEach((e) => {
+			Object.keys(e["data"]).forEach((key) => {
+				if (self.db.isStringDimension(key))
+					delete e["data"][key]
+			})
+		});
+		// Bind to overlayData and update
 		var update = this.overlayPaths
-			.selectAll('path').data(this.overlayData);
+			.selectAll('path').data(data);
 		update.enter() //ENTER
 			.append('path')
 		.merge(update) //ENTER + UPDATE
