@@ -42,6 +42,14 @@
 	cursor: pointer;
 }
 
+.CINEMA_COMPONENT.IMAGE_SPREAD .dataDisplay .detailDisplay {
+	display: inline-block;
+	/*border: 2px solid black;*/
+	/*line-height: 0;*/
+	/*position: absolute;*/
+	/*right: 0px;*/
+}
+
 .CINEMA_COMPONENT.IMAGE_SPREAD .fileDisplay .display.image:hover {
 	border: 2px solid rgb(23, 165, 221);
 	box-shadow: 1px 1px 2px black;

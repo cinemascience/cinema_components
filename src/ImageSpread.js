@@ -449,6 +449,17 @@
 							d3.select(this).select('.displayLabel')
 								.text(self.dimensions[i]);
 						});
+					var detailDisplay = d3.select(this)
+						.append('div')
+						.classed('detailDisplay', true)
+						.html(function(d) {
+							var text = '<b>Index:<b> '+d+'<br>';
+							// var data = currentDb.data[index]
+							// for (i in data) {
+							// 	text += ('<b>'+i+':</b> ');
+							// 	text += (data[i] + '<br>');
+							// }
+							return text});
 				});
 		}
 	};
