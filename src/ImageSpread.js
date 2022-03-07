@@ -401,11 +401,24 @@
 					var fileDisplays = d3.select(this).selectAll('.fileDisplay')
 						.data(files);
 					fileDisplays.exit().remove();
+
+					// create the div for detail displays
+					var detailDisplays = d3.select(this).selectAll('.detailDisplay').data([d]);
+					detailDisplays.exit().remove();
+
+
 					var ENTER = fileDisplays.enter().append('div')
 						.classed('fileDisplay', true);
 					ENTER.append('div').classed('display', true)
 						.style('width', self.imageSizeNode.value + 'px');
 					ENTER.append('div').classed('displayLabel', true);
+
+					detailDisplays
+						.enter()
+						.append('div')
+						.classed('detailDisplay', true)
+						.html('foo')
+
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
 						.each(function(f, i) {
@@ -449,17 +462,6 @@
 							d3.select(this).select('.displayLabel')
 								.text(self.dimensions[i]);
 						});
-					var detailDisplay = d3.select(this)
-						.append('div')
-						.classed('detailDisplay', true)
-						.html(function(d) {
-							var text = '<b>Index:<b> '+d+'<br>';
-							// var data = currentDb.data[index]
-							// for (i in data) {
-							// 	text += ('<b>'+i+':</b> ');
-							// 	text += (data[i] + '<br>');
-							// }
-							return text});
 				});
 		}
 	};
