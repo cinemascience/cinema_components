@@ -417,7 +417,15 @@
 						.enter()
 						.append('div')
 						.classed('detailDisplay', true)
-						.html('foo')
+						.html(() => {
+							var data = self.db.data[d];
+							var text = ''
+							for (var _ in data) {
+								text += ('<b>'+_+':</b> ');
+								text += (data[_] + '<br>');
+							}
+							return text;
+						})
 
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
