@@ -413,50 +413,12 @@
 						.style('width', self.imageSizeNode.value + 'px');
 					ENTER.append('div').classed('displayLabel', true);
 
-					detailDisplays.join(
-						function(enter) {
-							enter
-								.append('div')
+					var ENTER_DETAIL = detailDisplays
+						.enter().append('div')
 								.classed('detailDisplay', true)
-								.html(() => {
-									var data = self.db.data[d];
-									var text = ''
-									for (var _ in data) {
-										text += ('<b>' + _ + ':</b> ');
-										text += (data[_] + '<br>');
-									}
-									return text;
-								})
-						},
-						function(update) {
-							return update
-								.select('detailDisplay')
-								.html(() => {
-									var data = self.db.data[d];
-									var text = ''
-									for (var _ in data) {
-										text += ('<b>' + _ + ':</b> ');
-										text += (data[_] + '<br>');
-									}
-									return text;
-								})
-						}, function(exit) {
-							return exit.remove()
-						}
-					)
-						// .update()
-						// .html(() => {
-						// 	var data = self.db.data[d];
-						// 	var text = ''
-						// 	for (var _ in data) {
-						// 		text += ('<b>'+_+':</b> ');
-						// 		text += (data[_] + '<br>');
-						// 	}
-						// 	return text;
-						// })
-
 					/*
 					todo: make update match that of the fileDisplays
+					it looks like the file displays only add the data in the update...
 					 */
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
@@ -501,7 +463,23 @@
 							d3.select(this).select('.displayLabel')
 								.text(self.dimensions[i]);
 						});
+
+					var UPDATE_DETAIL = ENTER_DETAIL
+						.merge(detailDisplays)
+						.each(() => {
+							d3.select('.detailDisplay')
+								.html(() => {
+									var data = self.db.data[d];
+									var text = ''
+									for (var _ in data) {
+										text += ('<b>' + _ + ':</b> ');
+										text += (data[_] + '<br>');
+									}
+									return text;
+								})
+						})
 				});
+
 		}
 	};
 
