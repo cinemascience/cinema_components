@@ -467,7 +467,7 @@
 					var UPDATE_DETAIL = ENTER_DETAIL
 						.merge(detailDisplays)
 						.each(() => {
-							d3.select('.detailDisplay')
+							d3.select(this).select('.detailDisplay')
 								.html(() => {
 									var data = self.db.data[d];
 									var text = ''
