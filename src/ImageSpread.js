@@ -413,20 +413,51 @@
 						.style('width', self.imageSizeNode.value + 'px');
 					ENTER.append('div').classed('displayLabel', true);
 
-					detailDisplays
-						.enter()
-						.append('div')
-						.classed('detailDisplay', true)
-						.html(() => {
-							var data = self.db.data[d];
-							var text = ''
-							for (var _ in data) {
-								text += ('<b>'+_+':</b> ');
-								text += (data[_] + '<br>');
-							}
-							return text;
-						})
+					detailDisplays.join(
+						function(enter) {
+							enter
+								.append('div')
+								.classed('detailDisplay', true)
+								.html(() => {
+									var data = self.db.data[d];
+									var text = ''
+									for (var _ in data) {
+										text += ('<b>' + _ + ':</b> ');
+										text += (data[_] + '<br>');
+									}
+									return text;
+								})
+						},
+						function(update) {
+							return update
+								.select('detailDisplay')
+								.html(() => {
+									var data = self.db.data[d];
+									var text = ''
+									for (var _ in data) {
+										text += ('<b>' + _ + ':</b> ');
+										text += (data[_] + '<br>');
+									}
+									return text;
+								})
+						}, function(exit) {
+							return exit.remove()
+						}
+					)
+						// .update()
+						// .html(() => {
+						// 	var data = self.db.data[d];
+						// 	var text = ''
+						// 	for (var _ in data) {
+						// 		text += ('<b>'+_+':</b> ');
+						// 		text += (data[_] + '<br>');
+						// 	}
+						// 	return text;
+						// })
 
+					/*
+					todo: make update match that of the fileDisplays
+					 */
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
 						.each(function(f, i) {
