@@ -416,10 +416,7 @@
 					var ENTER_DETAIL = detailDisplays
 						.enter().append('div')
 								.classed('detailDisplay', true)
-					/*
-					todo: make update match that of the fileDisplays
-					it looks like the file displays only add the data in the update...
-					 */
+					
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
 						.each(function(f, i) {
