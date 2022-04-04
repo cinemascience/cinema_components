@@ -397,6 +397,8 @@
 					var files = self.dimensions.map(function(dimension) {
 						return self.db.data[d][dimension];
 					});
+					// track index in html for easy scrolling
+					d3.select(this).attr('index', d);
 					//bind files data
 					var fileDisplays = d3.select(this).selectAll('.fileDisplay')
 						.data(files);
@@ -416,7 +418,7 @@
 					var ENTER_DETAIL = detailDisplays
 						.enter().append('div')
 								.classed('detailDisplay', true)
-					
+
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
 						.each(function(f, i) {
