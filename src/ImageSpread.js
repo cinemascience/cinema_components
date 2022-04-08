@@ -765,6 +765,16 @@
 		global.renderWindow = renderWindow;
 	}
 
+	CINEMA_COMPONENTS.ImageSpread.prototype.goToPageWithIx = function(ix) {
+		var self = this;
+		var page = Math.floor(self.selection.indexOf(ix)  / self.pageSizeNode.value) + 1;
+		if (self.currentPage !== page) {
+			self.currentPage = page
+			self.updatePageNav();
+			self.populateResults();
+		}
+	}
+
 	/**
 	 * Calculate the number of pages needed to show all results and rebuild
 	 * the page navigation widget.
