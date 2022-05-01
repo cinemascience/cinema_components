@@ -417,8 +417,11 @@
 
 					var ENTER_DETAIL = detailDisplays
 						.enter().append('div')
-								.classed('detailDisplay', true)
-
+								.classed('detailDisplay', true);
+					ENTER_DETAIL.append('div').classed('display', true)
+						.style('height', 0.75*self.imageSizeNode.value + 'px')
+						.style('width', 1.25*self.imageSizeNode.value + 'px');
+					ENTER_DETAIL.append('div').classed('displayLabel', true);
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
 						.each(function(f, i) {
@@ -466,9 +469,7 @@
 					var UPDATE_DETAIL = ENTER_DETAIL
 						.merge(detailDisplays)
 						.each(() => {
-							var r = d3.select(this).select('.image').node().getBoundingClientRect();
-							var h = r["height"];
-							d3.select(this).select('.detailDisplay')
+							d3.select(this).select('.detailDisplay .display')
 								.html(() => {
 									var data = self.db.data[d];
 									var text = ''
@@ -478,7 +479,8 @@
 									}
 									return text;
 								})
-							d3.select(this).select('.detailDisplay').style("height", h + "px");
+							d3.select(this).select('.detailDisplay .displayLabel')
+								.text('DETAILS');
 						})
 				});
 
