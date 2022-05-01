@@ -263,8 +263,12 @@
 			.attr('min', '100')
 			.attr('max', '500')
 			.on('input', function() {
-				d3.select(self.container).selectAll('.display')
+				d3.select(self.container).selectAll('.fileDisplay .display')
 					.style('width', this.value + 'px');
+				d3.select(self.container).selectAll('.detailDisplay .display')
+					.style('width', Math.min(1.25*this.value, 300) + 'px');
+				d3.select(self.container).selectAll('.detailDisplay .display')
+					.style('height', 0.75*this.value + 'px');
 				d3.select(self.container).select('.controlPanel.imageSize .label')
 					.text("Image Size: " + this.value + "px");
 			})
@@ -418,9 +422,7 @@
 					var ENTER_DETAIL = detailDisplays
 						.enter().append('div')
 								.classed('detailDisplay', true);
-					ENTER_DETAIL.append('div').classed('display', true)
-						.style('height', 0.75*self.imageSizeNode.value + 'px')
-						.style('width', 1.25*self.imageSizeNode.value + 'px');
+					ENTER_DETAIL.append('div').classed('display', true);
 					ENTER_DETAIL.append('div').classed('displayLabel', true);
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
@@ -481,6 +483,10 @@
 								})
 							d3.select(this).select('.detailDisplay .displayLabel')
 								.text('DETAILS');
+							d3.select(this).select('.detailDisplay .display')
+								.style('width', 1.25*self.imageSizeNode.value + 'px');
+							d3.select(this).select('.detailDisplay .display')
+								.style('height', 0.75*self.imageSizeNode.value + 'px')
 						})
 				});
 
