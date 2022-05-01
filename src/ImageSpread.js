@@ -466,6 +466,8 @@
 					var UPDATE_DETAIL = ENTER_DETAIL
 						.merge(detailDisplays)
 						.each(() => {
+							var r = d3.select(this).select('.image').node().getBoundingClientRect();
+							var h = r["height"];
 							d3.select(this).select('.detailDisplay')
 								.html(() => {
 									var data = self.db.data[d];
@@ -476,6 +478,7 @@
 									}
 									return text;
 								})
+							d3.select(this).select('.detailDisplay').style("height", h + "px");
 						})
 				});
 

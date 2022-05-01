@@ -44,6 +44,7 @@
 
 .CINEMA_COMPONENT.IMAGE_SPREAD .dataDisplay .detailDisplay {
 	display: inline-block;
+	overflow-y: auto;
 	/*border: 2px solid black;*/
 	/*line-height: 0;*/
 	/*position: absolute;*/
