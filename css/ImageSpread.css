@@ -51,6 +51,7 @@
 	overflow-y: auto;
 	padding: 10px;
 	border: 2px solid black;
+	overflow-wrap: break-word;
 }
 
 .CINEMA_COMPONENT.IMAGE_SPREAD .detailDisplay .displayLabel {
