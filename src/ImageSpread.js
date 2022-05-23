@@ -465,7 +465,13 @@
 								.text('Cannot display file: ' + f);
 							//Update label
 							d3.select(this).select('.displayLabel')
-								.text(self.dimensions[i]);
+								.text(self.dimensions[i] + ' ')
+							//Add a download link
+							d3.select(this).select('.displayLabel')
+								.append('a')
+								.attr('href', self.db.directory + '/' + f)
+								.attr('download', f)
+								.text('Download')
 						});
 
 					var UPDATE_DETAIL = ENTER_DETAIL
