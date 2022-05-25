@@ -1424,21 +1424,40 @@
 							d3.select(this).select('.display').html('');
 							//Create an image in the display if the it is an image filetype
 							var ext = getFileExtension(f);
-							if(isValidFiletype(ext)) {
-								if(ext.toUpperCase() === 'VTI') {
+							if (isValidFiletype(ext)) {
+								if (ext.toUpperCase() === 'VTI') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
 										.attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
 										.attr('width', '100%')
 										.on('click', function() {self.createModalVTI(self.db.directory + '/' + f);});
-								} else if(ext.toUpperCase() === 'PDB') {
+								} else if (ext.toUpperCase() === 'PDB') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
 										.attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
 										.attr('width', '100%')
-										.on('click', function() {self.createModalPDB(self.db.directory + '/' + f);});
+										.on('click', function () {
+											self.createModalPDB(self.db.directory + '/' + f);
+										});
+								} else if (ext.toUpperCase() === "TXT") {
+									var DISPLAY = d3.select(this).select('.display')
+										.classed('image', false)
+										.classed('text', true)
+									var request = new XMLHttpRequest();
+									request.open("GET", self.db.directory + '/' + f,true);
+									request.onreadystatechange = function() {
+										if (request.readyState === 4) {
+											if (request.status === 200 ||
+												(navigator.userAgent.match(/Safari/) && request.status === 0)
+												) {
+												DISPLAY.text(request.responseText);
+											}
+										}
+									};
+									request.send(null)
+									return request.responseText;
 								} else {
 									d3.select(this).select('.display')
 										.classed('image', true)
@@ -1947,7 +1966,7 @@
 	function isValidFiletype(type) {
 		if(!type)
 			return false;
-		var validFiletypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'VTI', 'PDB'];
+		var validFiletypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'VTI', 'PDB', 'TXT'];
 		type = type.trimLeft().trimRight();
 		var index = validFiletypes.indexOf(type.toUpperCase());
 
