@@ -1263,6 +1263,14 @@
 					.style('width', Math.min(1.25*this.value, 300) + 'px');
 				d3.select(self.container).selectAll('.detailDisplay .display')
 					.style('height', 0.75*this.value + 'px');
+				d3.select(self.container).selectAll('.detailDisplay .display')
+					.style('margin-left', '10px');
+				d3.select(self.container).selectAll('.display .textDisplay')
+					.style('width', Math.min(1.25*this.value, 300) + 'px');
+				d3.select(self.container).selectAll('.display .textDisplay')
+					.style('height', 0.75*this.value + 'px');
+				d3.select(self.container).selectAll('.display .textDisplay')
+					.style('margin-right', '10px');
 				d3.select(self.container).select('.controlPanel.imageSize .label')
 					.text("Image Size: " + this.value + "px");
 			})
@@ -1444,7 +1452,9 @@
 								} else if (ext.toUpperCase() === "TXT") {
 									var DISPLAY = d3.select(this).select('.display')
 										.classed('image', false)
-										.classed('text', true)
+										.classed('text', false)
+										.append('div')
+										.classed('textDisplay', true);
 									var request = new XMLHttpRequest();
 									request.open("GET", self.db.directory + '/' + f,true);
 									request.onreadystatechange = function() {
@@ -1456,8 +1466,11 @@
 											}
 										}
 									};
+									d3.select(this).select('.detail .textDisplay')
+										.style('width', 1.25*self.imageSizeNode.value + 'px');
+									d3.select(this).select('.display .textDisplay')
+										.style('height', 0.75*self.imageSizeNode.value + 'px')
 									request.send(null)
-									return request.responseText;
 								} else {
 									d3.select(this).select('.display')
 										.classed('image', true)
