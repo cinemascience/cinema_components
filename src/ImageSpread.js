@@ -441,7 +441,9 @@
 										.classed('text', false).append('img')
 										.attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
 										.attr('width', '100%')
-										.on('click', function() {self.createModalVTI(self.db.directory + '/' + f);});
+										.on('click', function () {
+											self.createModalVTI(self.db.directory + '/' + f);
+										});
 								} else if (ext.toUpperCase() === 'PDB') {
 									d3.select(this).select('.display')
 										.classed('image', true)
@@ -451,34 +453,36 @@
 										.on('click', function () {
 											self.createModalPDB(self.db.directory + '/' + f);
 										});
-								} else if(ext.toUpperCase() === 'MOL2') {
+								} else if (ext.toUpperCase() === 'MOL2') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
 										//.attr('src', self.db.directory + '/' + f.substr(0, f.lastIndexOf(".")) + ".png")
 										.attr('src', 'https://miketynes.github.io/bucket/3dmoljs.png')
 										.attr('width', '100%')
-									    .on('click', function() {self.createModalMOL2(self.db.directory + '/' + f);});
+										.on('click', function () {
+											self.createModalMOL2(self.db.directory + '/' + f);
+										});
 								} else if (ext.toUpperCase() === "TXT") {
 									var DISPLAY = d3.select(this).select('.display')
 										.classed('image', false)
 										.classed('text', false)
 										.classed('textfile', true)
 									var request = new XMLHttpRequest();
-									request.open("GET", self.db.directory + '/' + f,true);
-									request.onreadystatechange = function() {
+									request.open("GET", self.db.directory + '/' + f, true);
+									request.onreadystatechange = function () {
 										if (request.readyState === 4) {
 											if (request.status === 200 ||
 												(navigator.userAgent.match(/Safari/) && request.status === 0)
-												) {
+											) {
 												DISPLAY.text(request.responseText);
 											}
 										}
 									};
 									d3.select(this).select('.display.textfile')
-										.style('width', 1.25*self.imageSizeNode.value + 'px');
+										.style('width', 1.25 * self.imageSizeNode.value + 'px');
 									d3.select(this).select('.display.textfile')
-										.style('height', 0.75*self.imageSizeNode.value + 'px')
+										.style('height', 0.75 * self.imageSizeNode.value + 'px')
 									request.send(null)
 								} else {
 									d3.select(this).select('.display')
@@ -489,6 +493,13 @@
 										.attr('width', '100%')
 										.on('click', self.createModalImg);
 								}
+							} else if (f === undefined) {
+								d3.select(this).select('.display')
+								.classed('text', true)
+								.classed('image', false)
+								.append('div')
+								.attr('class', 'resultErrorText')
+								.text('File not found in database');
 							}
 							//Otherwise create an error message
 							else
@@ -497,16 +508,18 @@
 								.classed('image', false)
 								.append('div')
 								.attr('class', 'resultErrorText')
-								.text('Cannot display file: ' + f);
+								.text('Unable to disolay file "' + f + '". Download available:');
 							//Update label
 							d3.select(this).select('.displayLabel')
 								.text(self.dimensions[i] + ' ')
-							//Add a download link
-							d3.select(this).select('.displayLabel')
-								.append('a')
-								.attr('href', self.db.directory + '/' + f)
-								.attr('download', f)
-								.text('Download')
+							if (f !== undefined) {
+								//Add a download link
+								d3.select(this).select('.displayLabel')
+									.append('a')
+									.attr('href', self.db.directory + '/' + f)
+									.attr('download', f)
+									.text('Download')
+							}
 						});
 
 					var UPDATE_DETAIL = ENTER_DETAIL
