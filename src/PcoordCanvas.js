@@ -3,13 +3,13 @@
 	/**
 	 * CINEMA_COMPONENTS
 	 * PCOORD_CANVAS
-	 * 
+	 *
 	 * The PcoordSVG Component for the CINEMA_COMPONENTS library.
 	 * Contains the constructor for the PcoordCanvas component:
 	 * A subclass of Pcoord which draws a Paralell Coordinates chart using canvas elements.
-	 * 
+	 *
 	 * @exports CINEMA_COMPONENTS
-	 * 
+	 *
 	 * @author Cameron Tauxe
 	 */
 
@@ -117,6 +117,27 @@
 					if (self.lastMouseMove !== null) {
 						self.lastMouseMove = null;
 						self.dispatch.call('mouseover',self,null,d3.event);
+					}
+				}
+			}
+		});
+
+        this.lastMouseClick = null;
+		this.pathContainer.on('click', function() {
+			var x = d3.mouse(self.selectedCanvas)[0]*self.pixelRatio;
+			var y = d3.mouse(self.selectedCanvas)[1]*self.pixelRatio;
+			if (x >= 0 && y >= 0) {
+				var index = getIndexAtPoint(x,y,self.indexCanvas);
+				if (index != -1) {
+					if (self.lastMouseClick != self.selection[index]) {
+						self.lastMouseClick = self.selection[index];
+						self.dispatch.call('click',self,self.selection[index],d3.event);
+					}
+				}
+				else {
+					if (self.lastMouseClick !== null) {
+						self.lastMouseClick = null;
+						self.dispatch.call('click',self,null,d3.event);
 					}
 				}
 			}
