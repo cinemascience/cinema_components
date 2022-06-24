@@ -105,6 +105,28 @@
 		}, 16, this);
 
 		//Set up mousemove listener to get moused-over paths
+		this.lastMouseClick = null; //remember last result, to prevent excessive dispatch calls
+		this.pointContainer.on('click', function() {
+			var x = d3.mouse(self.selectedCanvas)[0]*self.pixelRatio;
+			var y = d3.mouse(self.selectedCanvas)[1]*self.pixelRatio;
+			if (x >= 0 && y >= 0) {
+				var index = getIndexAtPoint(x,y,self.indexCanvas);
+				if (index != -1) {
+					if (self.lastMouseClick != self.plottablePoints[index]) {
+						self.lastMouseClick = self.plottablePoints[index];
+						self.dispatch.call('click',self,self.plottablePoints[index],d3.event);
+					}
+				}
+				else {
+					if (self.lastMouseClick !== null) {
+						self.lastMouseClick = null;
+						self.dispatch.call('click',self,null,d3.event);
+					}
+				}
+			}
+		});
+
+		//Set up mousemove listener to get moused-over paths
 		this.lastMouseMove = null; //remember last result, to prevent excessive dispatch calls
 		this.pointContainer.on('mousemove', function() {
 			var x = d3.mouse(self.selectedCanvas)[0]*self.pixelRatio;
