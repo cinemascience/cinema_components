@@ -1394,9 +1394,6 @@
 				.on('mouseleave', function(d) {
 					self.dispatch.call('mouseover', self, null, d3.event);
 				})
-				//.on('click', function(d) {
-				//	self.dispatch.call('click', self, d);
-				//})
 				//For each data display, create file displays for every file in it
 				.each(function(d) {
 					var files = self.dimensions.map(function(dimension) {
