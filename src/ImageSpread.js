@@ -121,7 +121,7 @@
 		 * 'mouseover': Triggered when a set of images is moused over
 		 *	 (arguments are the index of moused over data and mouse event)
 		 */
-		this.dispatch = d3.dispatch('mouseover');
+		this.dispatch = d3.dispatch('mouseover', 'click');
 
 		/***************************************
 		 * DOM Content
@@ -524,6 +524,9 @@
 
 					var UPDATE_DETAIL = ENTER_DETAIL
 						.merge(detailDisplays)
+						.on('click', function(d) {
+				            self.dispatch.call('click', self, d, d3.event);
+				        })
 						.each(() => {
 							d3.select(this).select('.detailDisplay .display')
 								.html(() => {
