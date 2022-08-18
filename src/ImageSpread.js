@@ -484,6 +484,14 @@
 									d3.select(this).select('.display.textfile')
 										.style('height', 0.75 * self.imageSizeNode.value + 'px')
 									request.send(null)
+								} else if (ext.toUpperCase() === "PNG" && f.startsWith('http')) {
+									d3.select(this).select('.display')
+											.classed('image', true)
+											.classed('text', false)
+											.append('img')
+											.attr('src', f)
+											.attr('width', '100%')
+											.on('click', self.createModalImg);
 								} else {
 									d3.select(this).select('.display')
 										.classed('image', true)
