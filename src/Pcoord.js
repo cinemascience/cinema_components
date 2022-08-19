@@ -839,7 +839,7 @@
 	 * @param {Object} p - The data point
 	 */
 	CINEMA_COMPONENTS.Pcoord.prototype.getYPosition = function(d, p) {
-		if (isNaN(p[d]) || p[d] === undefined)
+		if (!this.db.isStringDimension(d) && isNaN(p[d]))
 			//If the value is NaN on a linear scale, return internalHeight as the position
 			//(to place the line on the NaN tick)
 			return this.internalHeight;
