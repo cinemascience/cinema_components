@@ -89,7 +89,7 @@
 		 * 'ychanged': Triggered when the y dimension being viewed is changed
 		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("mouseover",'xchanged','ychanged');
+		this.dispatch = d3.dispatch("mouseover",'xchanged','ychanged', 'click');
 
 		/***************************************
 		 * SCALES

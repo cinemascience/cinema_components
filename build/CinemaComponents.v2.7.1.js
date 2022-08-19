@@ -1115,7 +1115,7 @@
 		 * 'mouseover': Triggered when a set of images is moused over
 		 *	 (arguments are the index of moused over data and mouse event)
 		 */
-		this.dispatch = d3.dispatch('mouseover');
+		this.dispatch = d3.dispatch('mouseover', 'click');
 
 		/***************************************
 		 * DOM Content
@@ -1518,6 +1518,9 @@
 
 					var UPDATE_DETAIL = ENTER_DETAIL
 						.merge(detailDisplays)
+						.on('click', function(d) {
+				            self.dispatch.call('click', self, d, d3.event);
+				        })
 						.each(() => {
 							d3.select(this).select('.detailDisplay .display')
 								.html(() => {
@@ -2955,13 +2958,13 @@
 	/**
 	 * CINEMA_COMPONENTS
 	 * PCOORD_CANVAS
-	 * 
+	 *
 	 * The PcoordSVG Component for the CINEMA_COMPONENTS library.
 	 * Contains the constructor for the PcoordCanvas component:
 	 * A subclass of Pcoord which draws a Paralell Coordinates chart using canvas elements.
-	 * 
+	 *
 	 * @exports CINEMA_COMPONENTS
-	 * 
+	 *
 	 * @author Cameron Tauxe
 	 */
 
@@ -3069,6 +3072,27 @@
 					if (self.lastMouseMove !== null) {
 						self.lastMouseMove = null;
 						self.dispatch.call('mouseover',self,null,d3.event);
+					}
+				}
+			}
+		});
+
+        this.lastMouseClick = null;
+		this.pathContainer.on('click', function() {
+			var x = d3.mouse(self.selectedCanvas)[0]*self.pixelRatio;
+			var y = d3.mouse(self.selectedCanvas)[1]*self.pixelRatio;
+			if (x >= 0 && y >= 0) {
+				var index = getIndexAtPoint(x,y,self.indexCanvas);
+				if (index != -1) {
+					if (self.lastMouseClick != self.selection[index]) {
+						self.lastMouseClick = self.selection[index];
+						self.dispatch.call('click',self,self.selection[index],d3.event);
+					}
+				}
+				else {
+					if (self.lastMouseClick !== null) {
+						self.lastMouseClick = null;
+						self.dispatch.call('click',self,null,d3.event);
 					}
 				}
 			}
@@ -3349,7 +3373,7 @@
 				self.dispatch.call("mouseover",self,null,d3.event);
 			})
 			.on('click', function(d) {
-				self.dispatch.call("click",self,d);
+				self.dispatch.call("click",self,d,d3.event);
 			});
 		update.exit() //EXIT
 			.remove();
@@ -3745,7 +3769,7 @@
 		 * 'ychanged': Triggered when the y dimension being viewed is changed
 		 *     (called with the new dimension as an argument)
 		*/
-		this.dispatch = d3.dispatch("mouseover",'xchanged','ychanged');
+		this.dispatch = d3.dispatch("mouseover",'xchanged','ychanged', 'click');
 
 		/***************************************
 		 * SCALES
@@ -4103,6 +4127,28 @@
 		}, 16, this);
 
 		//Set up mousemove listener to get moused-over paths
+		this.lastMouseClick = null; //remember last result, to prevent excessive dispatch calls
+		this.pointContainer.on('click', function() {
+			var x = d3.mouse(self.selectedCanvas)[0]*self.pixelRatio;
+			var y = d3.mouse(self.selectedCanvas)[1]*self.pixelRatio;
+			if (x >= 0 && y >= 0) {
+				var index = getIndexAtPoint(x,y,self.indexCanvas);
+				if (index != -1) {
+					if (self.lastMouseClick != self.plottablePoints[index]) {
+						self.lastMouseClick = self.plottablePoints[index];
+						self.dispatch.call('click',self,self.plottablePoints[index],d3.event);
+					}
+				}
+				else {
+					if (self.lastMouseClick !== null) {
+						self.lastMouseClick = null;
+						self.dispatch.call('click',self,null,d3.event);
+					}
+				}
+			}
+		});
+
+		//Set up mousemove listener to get moused-over paths
 		this.lastMouseMove = null; //remember last result, to prevent excessive dispatch calls
 		this.pointContainer.on('mousemove', function() {
 			var x = d3.mouse(self.selectedCanvas)[0]*self.pixelRatio;
@@ -4422,6 +4468,9 @@
 			})
 			.on('mouseleave',function(d) {
 				self.dispatch.call('mouseover',self,null,d3.event);
+			})
+			.on('click',function(d) {
+				self.dispatch.call('click',self,d,d3.event);
 			});
 		update.exit()
 			.remove();
