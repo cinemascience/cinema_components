@@ -516,7 +516,7 @@
 								.classed('image', false)
 								.append('div')
 								.attr('class', 'resultErrorText')
-								.text('Unable to disolay file "' + f + '". Download available:');
+								.text('Unable to display file "' + f + '". Download available:');
 							//Update label
 							d3.select(this).select('.displayLabel')
 								.text(self.dimensions[i] + ' ')
