@@ -110,6 +110,9 @@
 			})
 			.on('mouseleave',function(d) {
 				self.dispatch.call('mouseover',self,null,d3.event);
+			})
+			.on('click',function(d) {
+				self.dispatch.call('click',self,d,d3.event);
 			});
 		update.exit()
 			.remove();

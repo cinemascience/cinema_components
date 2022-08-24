@@ -330,7 +330,7 @@
 	 * Get data rows (returned as an array of indices) that are similar to the given data.
 	 * Difference between two data points is measured as the Manhattan distance where each dimension
 	 * is normalized. i.e. The sum of the differencs on each dimension (each scaled from 0 to 1).
-	 * On string dimensions, the distance is considered 0 if the strings are the same, otherwise 1
+	 * On string dimensions, the distance is 0 if the data is a regex match to the query string, Infinity otherwise
 	 * NaN values have 0 distance from each other, but 1 from anything else
 	 * undefined values 0 distance from each other, but 1 from defined values
 	 * @param {Object} query - An object representing the data to compare against 
@@ -345,9 +345,9 @@
 			var dist = 0; //manhattan distance
 			self.dimensions.forEach(function(d) {
 				if (query[d] !== undefined) {
-					//On string dimensions, the distance is considered 0 if the strings are the same, otherwise 1
+					//On string dimensions, the distance is considered 0 if the regex matches otherwise Infinity
 					if (self.isStringDimension(d))
-						dist += (row[d] == query[d] ? 0 : 1);
+						dist += (RegExp(query[d]).test(row[d]) ? 0 : Infinity);
 					//Compare number dimensions
 					else {
 						//NaN values have 0 distance from each other, but 1 from anything else

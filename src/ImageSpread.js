@@ -121,7 +121,7 @@
 		 * 'mouseover': Triggered when a set of images is moused over
 		 *	 (arguments are the index of moused over data and mouse event)
 		 */
-		this.dispatch = d3.dispatch('mouseover');
+		this.dispatch = d3.dispatch('mouseover', 'click');
 
 		/***************************************
 		 * DOM Content
@@ -263,8 +263,16 @@
 			.attr('min', '100')
 			.attr('max', '500')
 			.on('input', function() {
-				d3.select(self.container).selectAll('.display')
+				d3.select(self.container).selectAll('.fileDisplay .display')
 					.style('width', this.value + 'px');
+				d3.select(self.container).selectAll('.detailDisplay .display')
+					.style('width', Math.min(1.25*this.value, 300) + 'px');
+				d3.select(self.container).selectAll('.detailDisplay .display')
+					.style('height', 0.75*this.value + 'px');
+				d3.select(self.container).selectAll('.display.textfile')
+					.style('width', Math.min(1.25*this.value, 300) + 'px');
+				d3.select(self.container).selectAll('.display.textfile')
+					.style('height', 0.75*this.value + 'px');
 				d3.select(self.container).select('.controlPanel.imageSize .label')
 					.text("Image Size: " + this.value + "px");
 			})
@@ -397,36 +405,93 @@
 					var files = self.dimensions.map(function(dimension) {
 						return self.db.data[d][dimension];
 					});
+					// track index in html for easy scrolling
+					d3.select(this).attr('index', d);
 					//bind files data
 					var fileDisplays = d3.select(this).selectAll('.fileDisplay')
 						.data(files);
 					fileDisplays.exit().remove();
+
+					// create the div for detail displays
+					var detailDisplays = d3.select(this).selectAll('.detailDisplay').data([d]);
+					detailDisplays.exit().remove();
+
+
 					var ENTER = fileDisplays.enter().append('div')
 						.classed('fileDisplay', true);
 					ENTER.append('div').classed('display', true)
 						.style('width', self.imageSizeNode.value + 'px');
 					ENTER.append('div').classed('displayLabel', true);
+
+					var ENTER_DETAIL = detailDisplays
+						.enter().append('div')
+								.classed('detailDisplay', true);
+					ENTER_DETAIL.append('div').classed('display', true);
+					ENTER_DETAIL.append('div').classed('displayLabel', true);
 					var UPDATE = ENTER.merge(fileDisplays)
 						//Create content of each file display
 						.each(function(f, i) {
 							d3.select(this).select('.display').html('');
 							//Create an image in the display if the it is an image filetype
 							var ext = getFileExtension(f);
-							if(isValidFiletype(ext)) {
-								if(ext.toUpperCase() === 'VTI') {
+							if (isValidFiletype(ext)) {
+								if (ext.toUpperCase() === 'VTI') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
 										.attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
 										.attr('width', '100%')
-										.on('click', function() {self.createModalVTI(self.db.directory + '/' + f);});
-								} else if(ext.toUpperCase() === 'PDB') {
+										.on('click', function () {
+											self.createModalVTI(self.db.directory + '/' + f);
+										});
+								} else if (ext.toUpperCase() === 'PDB') {
 									d3.select(this).select('.display')
 										.classed('image', true)
 										.classed('text', false).append('img')
 										.attr('src', 'https://kitware.github.io/vtk-js/logo.svg')
 										.attr('width', '100%')
-										.on('click', function() {self.createModalPDB(self.db.directory + '/' + f);});
+										.on('click', function () {
+											self.createModalPDB(self.db.directory + '/' + f);
+										});
+								} else if (ext.toUpperCase() === 'MOL2') {
+									d3.select(this).select('.display')
+										.classed('image', true)
+										.classed('text', false).append('img')
+										//.attr('src', self.db.directory + '/' + f.substr(0, f.lastIndexOf(".")) + ".png")
+										.attr('src', 'https://miketynes.github.io/bucket/3dmoljs.png')
+										.attr('width', '100%')
+										.on('click', function () {
+											self.createModalMOL2(self.db.directory + '/' + f);
+										});
+								} else if (ext.toUpperCase() === "TXT") {
+									var DISPLAY = d3.select(this).select('.display')
+										.classed('image', false)
+										.classed('text', false)
+										.classed('textfile', true)
+									var request = new XMLHttpRequest();
+									request.open("GET", self.db.directory + '/' + f, true);
+									request.onreadystatechange = function () {
+										if (request.readyState === 4) {
+											if (request.status === 200 ||
+												(navigator.userAgent.match(/Safari/) && request.status === 0)
+											) {
+												DISPLAY.text(request.responseText);
+											}
+										}
+									};
+									d3.select(this).select('.display.textfile')
+										.style('width', 1.25 * self.imageSizeNode.value + 'px');
+									d3.select(this).select('.display.textfile')
+										.style('height', 0.75 * self.imageSizeNode.value + 'px')
+									request.send(null)
+								} else if (ext.toUpperCase() === "PNG" && f.startsWith('http')) {
+									d3.select(this).select('.display')
+											.classed('image', true)
+											.classed('text', false)
+											.append('img')
+											.attr('src', f)
+											.attr('width', '100%')
+											.on('click', self.createModalImg);
 								} else {
 									d3.select(this).select('.display')
 										.classed('image', true)
@@ -436,6 +501,13 @@
 										.attr('width', '100%')
 										.on('click', self.createModalImg);
 								}
+							} else if (f === undefined) {
+								d3.select(this).select('.display')
+								.classed('text', true)
+								.classed('image', false)
+								.append('div')
+								.attr('class', 'resultErrorText')
+								.text('File not found in database');
 							}
 							//Otherwise create an error message
 							else
@@ -444,12 +516,45 @@
 								.classed('image', false)
 								.append('div')
 								.attr('class', 'resultErrorText')
-								.text('Cannot display file: ' + f);
+								.text('Unable to display file "' + f + '". Download available:');
 							//Update label
 							d3.select(this).select('.displayLabel')
-								.text(self.dimensions[i]);
+								.text(self.dimensions[i] + ' ')
+							if (f !== undefined) {
+								//Add a download link
+								d3.select(this).select('.displayLabel')
+									.append('a')
+									.attr('href', self.db.directory + '/' + f)
+									.attr('download', f)
+									.text('Download')
+							}
 						});
+
+					var UPDATE_DETAIL = ENTER_DETAIL
+						.merge(detailDisplays)
+						.on('click', function(d) {
+				            self.dispatch.call('click', self, d, d3.event);
+				        })
+						.each(() => {
+							d3.select(this).select('.detailDisplay .display')
+								.html(() => {
+									var data = self.db.data[d];
+									var text = ''
+									for (var _ in data) {
+										text += ('<b>' + _ + ':</b> ');
+										text += (data[_] + '<br>');
+									}
+									return text;
+								})
+							d3.select(this).select('.detailDisplay .displayLabel')
+								.text('DETAILS');
+							d3.select(this).select('.detailDisplay .display')
+								.style('width', 1.25*self.imageSizeNode.value + 'px');
+							d3.select(this).select('.detailDisplay .display')
+								.style('height', 0.75*self.imageSizeNode.value + 'px')
+						})
 				});
+
 		}
 	};
 
@@ -486,8 +591,8 @@
 		const container = backgroundContainer.append('div');
 		container.attr('class', 'modalViewer').on('click', function() {
 			//clicking the modal removes it
-			//d3.select(this).remove();
-			//d3.event.stopPropagation();
+			d3.select(this).remove();
+			d3.event.stopPropagation();
 		});
 
 		var global = {};
@@ -496,7 +601,7 @@
 		// ----------------------------------------------------------------------------
 
 		//const rootContainer = document.querySelector('body');
-		const background = [0, 0, 0];
+		const background = [1, 1, 1];
 		const fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
 			background: background,
 			rootContainer: rootContainer.node(),
@@ -523,7 +628,7 @@
 
 		filter.setInputConnection(reader.getOutputPort());
 		//filter.setInputConnection(vtiReader.getOutputPort());
-		filter.setHideElements(['H']);
+		//filter.setHideElements(['H']);
 
 		// render sphere
 		sphereMapper.setInputConnection(filter.getOutputPort(0));
@@ -673,7 +778,7 @@
 		// ----------------------------------------------------------------------------
 
 		//const rootContainer = document.querySelector('body');
-		const background = [0, 0, 0];
+		const background = [1, 1, 1];
 		const fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
 			background: background,
 			rootContainer: rootContainer.node(),
@@ -734,6 +839,63 @@
 		global.stickActor = stickActor;
 		global.renderer = renderer;
 		global.renderWindow = renderWindow;
+	}
+
+	// MOl2 file handler
+	CINEMA_COMPONENTS.ImageSpread.prototype.createModalMOL2 = function(path) {
+		const rootContainer = d3.select('body');
+		const backgroundContainer = d3.select('body').append('div');
+		backgroundContainer.attr('class', 'modalBackground')
+		backgroundContainer.attr('id', 'background')
+		const container = backgroundContainer.append('div');
+		container.attr('class', 'modalMol')
+		container.attr('id', 'modalMol')
+		container.attr('href', path)
+
+		$(function () {
+			$.ajax({
+				url: path,
+				async: false,   // asynchronous request? (synchronous requests are discouraged...)
+				cache: false,   // with this, you can force the browser to not make cache of the retrieved data
+				dataType: "text",  // jQuery will infer this, but you can set explicitly
+				success: function (data, textStatus, jqXHR) {
+					let viewer = '';
+					let element = $('#modalMol');
+					let config = {
+						backgroundColor: 'white',
+					};
+					viewer = $3Dmol.createViewer(element, config);
+					viewer.addModel(data, 'mol2');
+					// viewer.addSphere({ center: {x:0, y:0, z:0}, radius: 10.0, color: 'green' }); For testing
+					viewer.setStyle({}, {stick: {'colorscheme': 'Jmol'}});
+					viewer.render();
+					viewer.zoomTo();
+				}
+			});
+		});
+		container.attr('class', 'modalMol')
+
+
+		// Add button for closing.
+		let btn = document.createElement("button");
+		let ele = document.getElementById('background');
+		btn.innerHTML += 'Close Viewer!'
+		btn.className = 'modalButton'
+		btn.id = 'buttonclose'
+		btn.onclick = function () {
+			d3.select('#background').remove();
+		};
+		ele.appendChild(btn)
+	}
+
+	CINEMA_COMPONENTS.ImageSpread.prototype.goToPageWithIx = function(ix) {
+		var self = this;
+		var page = Math.floor(self.selection.indexOf(ix)  / self.pageSizeNode.value) + 1;
+		if (self.currentPage !== page) {
+			self.currentPage = page
+			self.updatePageNav();
+			self.populateResults();
+		}
 	}
 
 	/**
@@ -897,7 +1059,7 @@
 	function isValidFiletype(type) {
 		if(!type)
 			return false;
-		var validFiletypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'VTI', 'PDB'];
+		var validFiletypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'VTI', 'PDB', 'MOL2', 'TXT'];
 		type = type.trimLeft().trimRight();
 		var index = validFiletypes.indexOf(type.toUpperCase());
 
