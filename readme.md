@@ -1,5 +1,5 @@
 # CINEMA_COMPONENTS
-## Version 2.7.1
+## Version 2.8.0
 A javascript library containing prebuilt components for viewing and querying Cinema SpecD databases.
 
 # Components
